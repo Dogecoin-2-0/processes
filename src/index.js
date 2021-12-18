@@ -25,6 +25,7 @@ function emitPriceAtIntervals(ids) {
       }
       _type = price > priceRecord[id] ? constants.INCREASE : constants.DECREASE;
       _record = { ..._record, [id]: { _type, _percentage, price } };
+      priceRecord[id] = price;
     }
     io.emit('price', { ..._record });
   });
