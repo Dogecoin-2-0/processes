@@ -22,6 +22,8 @@ function emitPriceAtIntervals(ids) {
           priceRecord[id] > price
             ? ((priceRecord[id] - price) * 100) / priceRecord[id]
             : ((price - priceRecord[id]) * 100) / price;
+      } else {
+        priceRecord[id] = price;
       }
       _type = price > priceRecord[id] ? constants.INCREASE : constants.DECREASE;
       _record = { ..._record, [id]: { _type, _percentage, price } };
@@ -32,5 +34,5 @@ function emitPriceAtIntervals(ids) {
 }
 
 io.on('connection', (socket) => {
-  socket.on;
+  emitPriceAtIntervals(['0x']);
 });
