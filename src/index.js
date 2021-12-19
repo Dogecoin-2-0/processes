@@ -1,15 +1,17 @@
 const express = require('express');
 const app = express();
 const Feed = require('./chains/priceFeed');
+const { ETH_WEB3_URL, ETH_CONTRACT_ADDRESS } = require('./env');
 
 const server = require('http').createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server);
 const priceRecord = {};
+const port = parseInt(process.env.PORT || '16000');
 
 function emitPriceAtIntervalsForETH(ids) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
-  const feed = new Feed('', '');
+  const feed = new Feed(ETH_WEB3_URL, ETH_CONTRACT_ADDRESS);
   setInterval(async () => {
     let _record = {};
     for (const id of ids) {
@@ -62,4 +64,8 @@ function emitPriceAtIntervalsForBSC(ids) {
 io.on('connection', (socket) => {
   emitPriceAtIntervalsForETH(['0x']);
   emitPriceAtIntervalsForBSC(['0x']);
+});
+
+server.listen(port, () => {
+  console.log(`Server is running on port: ${port}`);
 });
