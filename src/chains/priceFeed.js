@@ -8,7 +8,7 @@ class Feed {
 
   fetchPrice(baseAddress) {
     return Promise.resolve(
-      this.contract.methods.getPriceUSD(baseAddress).call()
+      this.contract.methods.fetchLatestPrice(baseAddress).call()
     );
   }
 }

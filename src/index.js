@@ -5,9 +5,9 @@ const Feed = require('./chains/priceFeed');
 const server = require('http').createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server);
-const priceRecord = {};
+const ethPriceRecord = {};
 
-function emitPriceAtIntervals(ids) {
+function emitPriceAtIntervalsForETH(ids) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
   const feed = new Feed('', '');
   setInterval(async () => {
@@ -19,20 +19,21 @@ function emitPriceAtIntervals(ids) {
       let _percentage = 0;
       if (!!priceRecord[id]) {
         _percentage =
-          priceRecord[id] > price
-            ? ((priceRecord[id] - price) * 100) / priceRecord[id]
-            : ((price - priceRecord[id]) * 100) / price;
+          ethPriceRecord[id] > price
+            ? ((ethPriceRecord[id] - price) * 100) / ethPriceRecord[id]
+            : ((price - ethPriceRecord[id]) * 100) / price;
       } else {
-        priceRecord[id] = price;
+        ethPriceRecord[id] = price;
       }
-      _type = price > priceRecord[id] ? constants.INCREASE : constants.DECREASE;
+      _type =
+        price > ethPriceRecord[id] ? constants.INCREASE : constants.DECREASE;
       _record = { ..._record, [id]: { _type, _percentage, price } };
-      priceRecord[id] = price;
+      ethPriceRecord[id] = price;
     }
-    io.emit('price', { ..._record });
+    io.emit('eth_price', { ..._record });
   });
 }
 
 io.on('connection', (socket) => {
-  emitPriceAtIntervals(['0x']);
+  emitPriceAtIntervalsForETH(['0x']);
 });
