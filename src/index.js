@@ -14,7 +14,7 @@ function emitPriceAtIntervalsForETH(ids) {
     let _record = {};
     for (const id of ids) {
       let price = await feed.fetchPrice(id);
-      price = price / 10 ** 8;
+      price = price / 10 ** (await feed.getDecimals(id));
       let _type = constants.INCREASE;
       let _percentage = 0;
       if (!!priceRecord[id]) {
@@ -40,7 +40,7 @@ function emitPriceAtIntervalsForBSC(ids) {
     let _record = {};
     for (const id of ids) {
       let price = await feed.fetchPrice(id);
-      price = price / 10 ** 8;
+      price = price / 10 ** (await feed.getDecimals(id));
       let _type = constants.INCREASE;
       let _percentage = 0;
       if (!!priceRecord[id]) {

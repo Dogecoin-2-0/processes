@@ -11,6 +11,12 @@ class Feed {
       this.contract.methods.fetchLatestPrice(baseAddress).call()
     );
   }
+
+  getDecimals(baseAddress) {
+    return Promise.resolve(
+      this.contract.methods.getDecimals(baseAddress).call()
+    );
+  }
 }
 
 module.exports = Feed;
