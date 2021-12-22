@@ -81,63 +81,62 @@ async function fetchIdsOnBinance() {
   return Promise.resolve(ids);
 }
 
-function emitPriceAtIntervalsForETH(ids, socketId) {
+function fetchETHPricesAtIntervals(ids) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
   const feed = new Feed(ETH_WEB3_URL, ETH_CONTRACT_ADDRESS);
   setInterval(async () => {
-    let _record = {};
     for (const id of ids) {
       let price = await feed.fetchPrice(id);
       price = price / 10 ** (await feed.getDecimals(id));
       let _type = constants.INCREASE;
       let _percentage = 0;
-      if (!!priceRecord[id]) {
+      if (!!priceRecord[id] && !!priceRecord[id].price && !!priceRecord[id].type && !!priceRecord[id].percentage) {
         _percentage =
-          priceRecord[id] > price
-            ? ((priceRecord[id] - price) * 100) / priceRecord[id]
-            : ((price - priceRecord[id]) * 100) / price;
+          priceRecord[id].price > price
+            ? ((priceRecord[id].price - price) * 100) / priceRecord[id].price
+            : ((price - priceRecord[id].price) * 100) / price;
+
+        _type = price > priceRecord[id].price ? constants.INCREASE : constants.DECREASE;
+        priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
       } else {
-        priceRecord[id] = price;
+        priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
       }
-      _type = price > priceRecord[id] ? constants.INCREASE : constants.DECREASE;
-      _record = { ..._record, [id]: { _type, _percentage, price } };
-      priceRecord[id] = price;
     }
-    io.to(socketId).emit('eth_price', { ..._record });
   }, 5000);
 }
 
-function emitPriceAtIntervalsForBSC(ids, socketId) {
+function fetchBSCPricesAtIntervals(ids) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
-  const feed = new Feed('', '');
+  const feed = new Feed(ETH_WEB3_URL, ETH_CONTRACT_ADDRESS);
   setInterval(async () => {
-    let _record = {};
     for (const id of ids) {
       let price = await feed.fetchPrice(id);
       price = price / 10 ** (await feed.getDecimals(id));
       let _type = constants.INCREASE;
       let _percentage = 0;
-      if (!!priceRecord[id]) {
+      if (!!priceRecord[id] && !!priceRecord[id].price && !!priceRecord[id].type && !!priceRecord[id].percentage) {
         _percentage =
-          priceRecord[id] > price
-            ? ((priceRecord[id] - price) * 100) / priceRecord[id]
-            : ((price - priceRecord[id]) * 100) / price;
+          priceRecord[id].price > price
+            ? ((priceRecord[id].price - price) * 100) / priceRecord[id].price
+            : ((price - priceRecord[id].price) * 100) / price;
+
+        _type = price > priceRecord[id].price ? constants.INCREASE : constants.DECREASE;
+        priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
       } else {
-        priceRecord[id] = price;
+        priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
       }
-      _type = price > priceRecord[id] ? constants.INCREASE : constants.DECREASE;
-      _record = { ..._record, [id]: { _type, _percentage, price } };
-      priceRecord[id] = price;
     }
-    io.to(socketId).emit('bsc_price', { ..._record });
   }, 5000);
+}
+
+function emitPriceAtIntervals(socketId) {
+  setInterval(async () => {
+    io.to(socketId).emit('price', { ...priceRecord });
+  }, 6000);
 }
 
 io.on('connection', async socket => {
-  const ethIds = await fetchIdsOnEthereum();
-  const bscIds = await fetchIdsOnBinance();
-  emitPriceAtIntervalsForETH(ethIds, socket.id);
-  emitPriceAtIntervalsForBSC(bscIds, socket.id);
+  emitPriceAtIntervals(socket.id);
 });
 
 server.listen(port, () => {
