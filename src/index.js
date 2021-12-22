@@ -1,13 +1,38 @@
 const express = require('express');
 const app = express();
+const { default: axios } = require('axios');
 const Feed = require('./chains/priceFeed');
-const { ETH_WEB3_URL, ETH_CONTRACT_ADDRESS } = require('./env');
+const { ETH_WEB3_URL, ETH_CONTRACT_ADDRESS, ASSETS_URL } = require('./env');
 
 const server = require('http').createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server);
 const priceRecord = {};
 const port = parseInt(process.env.PORT || '16000');
+
+async function fetchIdsOnEthereum() {
+  let ids = [];
+  const ethInfoRes = await axios.get(`${ASSETS_URL}/assets/ethereum/info`);
+  const tokensAddressRes = await axios.get(`${ASSETS_URL}/assets/tokens/ethereum/addresses`);
+  ids = [...ids, ethInfoRes.data.result['chainlinkUSDId']];
+  for (const address of tokensAddressRes.data.result) {
+    const tokenInfoRes = await axios.get(`${ASSETS_URL}/assets/tokens/ethereum/${address}/info`);
+    ids = [...ids, tokenInfoRes.data.result['chainlinkUSDId']];
+  }
+  return Promise.resolve(ids);
+}
+
+async function fetchIdsOnBinance() {
+  let ids = [];
+  const ethInfoRes = await axios.get(`${ASSETS_URL}/assets/binance/info`);
+  const tokensAddressRes = await axios.get(`${ASSETS_URL}/assets/tokens/binance/addresses`);
+  ids = [...ids, ethInfoRes.data.result['chainlinkUSDId']];
+  for (const address of tokensAddressRes.data.result) {
+    const tokenInfoRes = await axios.get(`${ASSETS_URL}/assets/tokens/binance/${address}/info`);
+    ids = [...ids, tokenInfoRes.data.result['chainlinkUSDId']];
+  }
+  return Promise.resolve(ids);
+}
 
 function emitPriceAtIntervalsForETH(ids) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
@@ -61,9 +86,11 @@ function emitPriceAtIntervalsForBSC(ids) {
   }, 5000);
 }
 
-io.on('connection', (socket) => {
-  emitPriceAtIntervalsForETH(['0x']);
-  emitPriceAtIntervalsForBSC(['0x']);
+io.on('connection', async () => {
+  const ethIds = await fetchIdsOnEthereum();
+  const bscIds = await fetchIdsOnBinance();
+  emitPriceAtIntervalsForETH(ethIds);
+  emitPriceAtIntervalsForBSC(bscIds);
 });
 
 server.listen(port, () => {

@@ -8,15 +8,11 @@ class Feed {
   }
 
   fetchPrice(baseAddress) {
-    return Promise.resolve(
-      this.contract.methods.fetchLatestPrice(baseAddress).call()
-    );
+    return Promise.resolve(this.contract.methods.fetchLatestPrice(baseAddress).call());
   }
 
   getDecimals(baseAddress) {
-    return Promise.resolve(
-      this.contract.methods.getDecimals(baseAddress).call()
-    );
+    return Promise.resolve(this.contract.methods.getDecimals(baseAddress).call());
   }
 }
 
