@@ -1,8 +1,53 @@
 const express = require('express');
 const app = express();
 const { default: axios } = require('axios');
+const mongoose = require('mongoose');
 const Feed = require('./chains/priceFeed');
 const { ETH_WEB3_URL, ETH_CONTRACT_ADDRESS, ASSETS_URL } = require('./env');
+const db = require('./db');
+const router = express.Router();
+const CustomError = require('./custom/error');
+
+router
+  .route('/push')
+  .post(async (req, res) => {
+    try {
+      const { address, token } = req.body;
+      const sub = await db.models.subscription.getSubscription(address);
+      let result;
+      if (!!sub) {
+        if (sub.token === token) throw new CustomError(400, 'Already subscribed for push');
+        result = await db.models.subscription.updateSubscription(address, token);
+        return res.status(200).json({ result });
+      }
+
+      result = await db.models.subscription.createSubscription({ address, token });
+      return res.status(201).json({ result });
+    } catch (error) {
+      return res.status(error.errorCode || 500).json({ error: error.message });
+    }
+  })
+  .delete(async (req, res) => {
+    try {
+      const { address } = req.body;
+
+      if (!!address || typeof address !== 'string')
+        throw new CustomError(400, 'Expects a string but found ' + typeof address);
+
+      await db.models.subscription.deleteSubscription(address);
+      return res.status(200).json({ result: 'DONE' });
+    } catch (error) {
+      return res.status(error.errorCode || 500).json({ error: error.message });
+    }
+  });
+
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
+  res.header('Access-Control-Allow-Methods', 'POST, DELETE');
+  next();
+});
+app.use('/', router);
 
 const server = require('http').createServer(app);
 const { Server } = require('socket.io');
@@ -97,4 +142,8 @@ io.on('connection', async () => {
 
 server.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
+  mongoose
+    .connect('')
+    .then(() => console.log('Mongoose connected'))
+    .catch(console.error);
 });
