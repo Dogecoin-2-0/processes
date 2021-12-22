@@ -19,6 +19,7 @@ async function fetchIdsOnEthereum() {
     const tokenInfoRes = await axios.get(`${ASSETS_URL}/assets/tokens/ethereum/${address}/info`);
     ids = [...ids, tokenInfoRes.data.result['chainlinkUSDId']];
   }
+  ids = ids.filter(id => typeof id === 'string');
   return Promise.resolve(ids);
 }
 
@@ -31,6 +32,7 @@ async function fetchIdsOnBinance() {
     const tokenInfoRes = await axios.get(`${ASSETS_URL}/assets/tokens/binance/${address}/info`);
     ids = [...ids, tokenInfoRes.data.result['chainlinkUSDId']];
   }
+  ids = ids.filter(id => typeof id === 'string');
   return Promise.resolve(ids);
 }
 
