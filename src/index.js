@@ -25,9 +25,9 @@ async function fetchIdsOnEthereum() {
 
 async function fetchIdsOnBinance() {
   let ids = [];
-  const ethInfoRes = await axios.get(`${ASSETS_URL}/assets/binance/info`);
+  const bscInfoRes = await axios.get(`${ASSETS_URL}/assets/binance/info`);
   const tokensAddressRes = await axios.get(`${ASSETS_URL}/assets/tokens/binance/addresses`);
-  ids = [...ids, ethInfoRes.data.result['chainlinkUSDId']];
+  ids = [...ids, bscInfoRes.data.result['chainlinkUSDId']];
   for (const address of tokensAddressRes.data.result) {
     const tokenInfoRes = await axios.get(`${ASSETS_URL}/assets/tokens/binance/${address}/info`);
     ids = [...ids, tokenInfoRes.data.result['chainlinkUSDId']];
