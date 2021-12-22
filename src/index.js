@@ -81,7 +81,7 @@ async function fetchIdsOnBinance() {
   return Promise.resolve(ids);
 }
 
-function emitPriceAtIntervalsForETH(ids) {
+function emitPriceAtIntervalsForETH(ids, socketId) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
   const feed = new Feed(ETH_WEB3_URL, ETH_CONTRACT_ADDRESS);
   setInterval(async () => {
@@ -103,11 +103,11 @@ function emitPriceAtIntervalsForETH(ids) {
       _record = { ..._record, [id]: { _type, _percentage, price } };
       priceRecord[id] = price;
     }
-    io.emit('eth_price', { ..._record });
+    io.to(socketId).emit('eth_price', { ..._record });
   }, 5000);
 }
 
-function emitPriceAtIntervalsForBSC(ids) {
+function emitPriceAtIntervalsForBSC(ids, socketId) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
   const feed = new Feed('', '');
   setInterval(async () => {
@@ -129,15 +129,15 @@ function emitPriceAtIntervalsForBSC(ids) {
       _record = { ..._record, [id]: { _type, _percentage, price } };
       priceRecord[id] = price;
     }
-    io.emit('bsc_price', { ..._record });
+    io.to(socketId).emit('bsc_price', { ..._record });
   }, 5000);
 }
 
-io.on('connection', async () => {
+io.on('connection', async socket => {
   const ethIds = await fetchIdsOnEthereum();
   const bscIds = await fetchIdsOnBinance();
-  emitPriceAtIntervalsForETH(ethIds);
-  emitPriceAtIntervalsForBSC(bscIds);
+  emitPriceAtIntervalsForETH(ethIds, socket.id);
+  emitPriceAtIntervalsForBSC(bscIds, socket.id);
 });
 
 server.listen(port, () => {
