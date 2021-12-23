@@ -3,7 +3,7 @@ const app = express();
 const { default: axios } = require('axios');
 const mongoose = require('mongoose');
 const Feed = require('./chains/priceFeed');
-const { ETH_WEB3_URL, ETH_CONTRACT_ADDRESS, ASSETS_URL } = require('./env');
+const { ETH_WEB3_URL, ETH_CONTRACT_ADDRESS, ASSETS_URL, DB_URI } = require('./env');
 const db = require('./db');
 const router = express.Router();
 const CustomError = require('./custom/error');
@@ -53,6 +53,7 @@ const server = require('http').createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server);
 const priceRecord = {};
+let socketIds = [];
 const port = parseInt(process.env.PORT || '16000');
 
 async function fetchIdsOnEthereum() {
@@ -129,20 +130,35 @@ function fetchBSCPricesAtIntervals(ids) {
   }, 5000);
 }
 
-function emitPriceAtIntervals(socketId) {
-  setInterval(async () => {
-    io.to(socketId).emit('price', { ...priceRecord });
+function emitPriceAtIntervals() {
+  setInterval(() => {
+    for (const socketId of socketIds) io.to(socketId).emit('price', { ...priceRecord });
   }, 6000);
 }
 
-io.on('connection', async socket => {
-  emitPriceAtIntervals(socket.id);
+async function initializeFetchingAndEmissions() {
+  const [ethIds, bscIds] = await Promise.all([fetchIdsOnEthereum(), fetchIdsOnBinance()]);
+  fetchETHPricesAtIntervals(ethIds);
+  fetchBSCPricesAtIntervals(bscIds);
+
+  emitPriceAtIntervals();
+}
+
+io.on('connection', socket => {
+  socketIds = [...socketIds, socket.id];
+});
+
+io.on('disconnect', socket => {
+  socketIds = socketIds.filter(id => id !== socket.id);
 });
 
 server.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
   mongoose
-    .connect('')
-    .then(() => console.log('Mongoose connected'))
+    .connect(DB_URI)
+    .then(async () => {
+      await initializeFetchingAndEmissions();
+      console.log('Mongoose connected');
+    })
     .catch(console.error);
 });
