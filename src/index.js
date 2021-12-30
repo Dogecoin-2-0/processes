@@ -159,6 +159,11 @@ io.on('disconnect', socket => {
   socketIds = socketIds.filter(id => id !== socket.id);
 });
 
+process.on('exit', () => {
+  for (const task of cron.getTasks()) task.stop();
+  io.disconnectSockets(true);
+});
+
 server.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
   mongoose
