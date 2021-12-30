@@ -166,7 +166,7 @@ function fetchBSCPricesAtIntervals(addresses) {
 function emitPriceAtIntervals() {
   cron
     .schedule('* * * * *', () => {
-      for (const socketId of socketIds) io.to(socketId).emit('price', { ...priceRecord });
+      for (const socketId of socketIds) io.to(socketId).emit('price', JSON.stringify({ ...priceRecord }));
     })
     .start();
 }
