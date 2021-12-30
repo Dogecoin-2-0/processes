@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const { default: axios } = require('axios');
 const mongoose = require('mongoose');
+const cron = require('node-cron');
 const Feed = require('./chains/priceFeed');
 const { ETH_WEB3_URL, ETH_CONTRACT_ADDRESS, ASSETS_URL, DB_URI } = require('./env');
 const db = require('./db');
@@ -85,55 +86,61 @@ async function fetchIdsOnBinance() {
 function fetchETHPricesAtIntervals(ids) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
   const feed = new Feed(ETH_WEB3_URL, ETH_CONTRACT_ADDRESS);
-  setInterval(async () => {
-    for (const id of ids) {
-      let price = await feed.fetchPrice(id);
-      price = price / 10 ** (await feed.getDecimals(id));
-      let _type = constants.INCREASE;
-      let _percentage = 0;
-      if (!!priceRecord[id] && !!priceRecord[id].price && !!priceRecord[id].type && !!priceRecord[id].percentage) {
-        _percentage =
-          priceRecord[id].price > price
-            ? ((priceRecord[id].price - price) * 100) / priceRecord[id].price
-            : ((price - priceRecord[id].price) * 100) / price;
+  cron
+    .schedule('*/2 * * * *', () => {
+      for (const id of ids) {
+        let price = await feed.fetchPrice(id);
+        price = price / 10 ** (await feed.getDecimals(id));
+        let _type = constants.INCREASE;
+        let _percentage = 0;
+        if (!!priceRecord[id] && !!priceRecord[id].price && !!priceRecord[id].type && !!priceRecord[id].percentage) {
+          _percentage =
+            priceRecord[id].price > price
+              ? ((priceRecord[id].price - price) * 100) / priceRecord[id].price
+              : ((price - priceRecord[id].price) * 100) / price;
 
-        _type = price > priceRecord[id].price ? constants.INCREASE : constants.DECREASE;
-        priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
-      } else {
-        priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+          _type = price > priceRecord[id].price ? constants.INCREASE : constants.DECREASE;
+          priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+        } else {
+          priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+        }
       }
-    }
-  }, 5000);
+    })
+    .start();
 }
 
 function fetchBSCPricesAtIntervals(ids) {
   const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
   const feed = new Feed(ETH_WEB3_URL, ETH_CONTRACT_ADDRESS);
-  setInterval(async () => {
-    for (const id of ids) {
-      let price = await feed.fetchPrice(id);
-      price = price / 10 ** (await feed.getDecimals(id));
-      let _type = constants.INCREASE;
-      let _percentage = 0;
-      if (!!priceRecord[id] && !!priceRecord[id].price && !!priceRecord[id].type && !!priceRecord[id].percentage) {
-        _percentage =
-          priceRecord[id].price > price
-            ? ((priceRecord[id].price - price) * 100) / priceRecord[id].price
-            : ((price - priceRecord[id].price) * 100) / price;
+  cron
+    .schedule('*/2 * * * *', () => {
+      for (const id of ids) {
+        let price = await feed.fetchPrice(id);
+        price = price / 10 ** (await feed.getDecimals(id));
+        let _type = constants.INCREASE;
+        let _percentage = 0;
+        if (!!priceRecord[id] && !!priceRecord[id].price && !!priceRecord[id].type && !!priceRecord[id].percentage) {
+          _percentage =
+            priceRecord[id].price > price
+              ? ((priceRecord[id].price - price) * 100) / priceRecord[id].price
+              : ((price - priceRecord[id].price) * 100) / price;
 
-        _type = price > priceRecord[id].price ? constants.INCREASE : constants.DECREASE;
-        priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
-      } else {
-        priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+          _type = price > priceRecord[id].price ? constants.INCREASE : constants.DECREASE;
+          priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+        } else {
+          priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+        }
       }
-    }
-  }, 5000);
+    })
+    .start();
 }
 
 function emitPriceAtIntervals() {
-  setInterval(() => {
-    for (const socketId of socketIds) io.to(socketId).emit('price', { ...priceRecord });
-  }, 6000);
+  cron
+    .schedule('* * * * *', () => {
+      for (const socketId of socketIds) io.to(socketId).emit('price', { ...priceRecord });
+    })
+    .start();
 }
 
 async function initializeFetchingAndEmissions() {
