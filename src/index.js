@@ -53,7 +53,7 @@ app.use('/', router);
 const server = require('http').createServer(app);
 const { Server } = require('socket.io');
 const io = new Server(server);
-const priceRecord = {};
+let priceRecord = {};
 let socketIds = [];
 const port = parseInt(process.env.PORT || '16000');
 
