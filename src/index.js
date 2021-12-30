@@ -135,8 +135,8 @@ function fetchBSCPricesAtIntervals(addresses) {
         if (
           !!priceRecord[_lowerAddress] &&
           !!priceRecord[_lowerAddress].price &&
-          !!priceRecord[_lowerAddress].type &&
-          !!priceRecord[_lowerAddress].percentage
+          !!priceRecord[_lowerAddress]._type &&
+          !!priceRecord[_lowerAddress]._percentage
         ) {
           const _type =
             result[_lowerAddress]['usd'] > priceRecord[_lowerAddress].price ? _constants.INCREASE : _constants.DECREASE;
