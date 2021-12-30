@@ -3,8 +3,7 @@ const app = express();
 const { default: axios } = require('axios');
 const mongoose = require('mongoose');
 const cron = require('node-cron');
-const Feed = require('./chains/priceFeed');
-const { ETH_WEB3_URL, ETH_CONTRACT_ADDRESS, ASSETS_URL, DB_URI } = require('./env');
+const { ASSETS_URL, DB_URI } = require('./env');
 const db = require('./db');
 const router = express.Router();
 const CustomError = require('./custom/error');
@@ -56,79 +55,108 @@ const io = new Server(server);
 let priceRecord = {};
 let socketIds = [];
 const port = parseInt(process.env.PORT || '16000');
+const coinGeckoCoinPriceAPI = 'https://api.coingecko.com/api/v3/simple/price';
+const coinGeckoTokenPriceAPI = 'https://api.coingecko.com/api/v3/simple/token_price/:id';
+const _constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
 
-async function fetchIdsOnEthereum() {
-  let ids = [];
-  const ethInfoRes = await axios.get(`${ASSETS_URL}/assets/ethereum/info`);
-  const tokensAddressRes = await axios.get(`${ASSETS_URL}/assets/tokens/ethereum/addresses`);
-  ids = [...ids, ethInfoRes.data.result['chainlinkUSDId']];
-  for (const address of tokensAddressRes.data.result) {
-    const tokenInfoRes = await axios.get(`${ASSETS_URL}/assets/tokens/ethereum/${address}/info`);
-    ids = [...ids, tokenInfoRes.data.result['chainlinkUSDId']];
-  }
-  ids = ids.filter(id => typeof id === 'string');
-  return Promise.resolve(ids);
+const _coinsList = ['ethereum', 'bitcoin'];
+
+function fetchAddressesOnEthereum() {
+  return axios.get(`${ASSETS_URL}/assets/tokens/ethereum/addresses`).then(res => {
+    if (res.status >= 400) throw new Error(`API responded with ${res.status}`);
+    return res.data.result;
+  });
 }
 
-async function fetchIdsOnBinance() {
-  let ids = [];
-  const bscInfoRes = await axios.get(`${ASSETS_URL}/assets/binance/info`);
-  const tokensAddressRes = await axios.get(`${ASSETS_URL}/assets/tokens/binance/addresses`);
-  ids = [...ids, bscInfoRes.data.result['chainlinkUSDId']];
-  for (const address of tokensAddressRes.data.result) {
-    const tokenInfoRes = await axios.get(`${ASSETS_URL}/assets/tokens/binance/${address}/info`);
-    ids = [...ids, tokenInfoRes.data.result['chainlinkUSDId']];
-  }
-  ids = ids.filter(id => typeof id === 'string');
-  return Promise.resolve(ids);
+function fetchAddressesOnBinance() {
+  return axios.get(`${ASSETS_URL}/assets/tokens/binance/addresses`).then(res => {
+    if (res.status >= 400) throw new Error(`API responded with ${res.status}`);
+    return res.data.result;
+  });
 }
 
-function fetchETHPricesAtIntervals(ids) {
-  const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
-  const feed = new Feed(ETH_WEB3_URL, ETH_CONTRACT_ADDRESS);
+function fetchCoinPricesAtIntervals() {
+  cron.schedule('*/2 * * * *', async () => {});
+}
+
+function fetchETHPricesAtIntervals(addresses) {
   cron
-    .schedule('*/2 * * * *', () => {
-      for (const id of ids) {
-        let price = await feed.fetchPrice(id);
-        price = price / 10 ** (await feed.getDecimals(id));
-        let _type = constants.INCREASE;
-        let _percentage = 0;
-        if (!!priceRecord[id] && !!priceRecord[id].price && !!priceRecord[id].type && !!priceRecord[id].percentage) {
-          _percentage =
-            priceRecord[id].price > price
-              ? ((priceRecord[id].price - price) * 100) / priceRecord[id].price
-              : ((price - priceRecord[id].price) * 100) / price;
-
-          _type = price > priceRecord[id].price ? constants.INCREASE : constants.DECREASE;
-          priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+    .schedule('*/2 * * * *', async () => {
+      const priceResp = await axios.get(
+        `${coinGeckoTokenPriceAPI.replace(':id', 'ethereum')}?contract_addresses=${addresses.join(
+          ','
+        )}&vs_currencies=usd&include_24hr_change=true`
+      );
+      const result = priceResp.data;
+      for (const address of addresses) {
+        const _lowerAddress = address.toLowerCase();
+        if (
+          !!priceRecord[_lowerAddress] &&
+          !!priceRecord[_lowerAddress].price &&
+          !!priceRecord[_lowerAddress].type &&
+          !!priceRecord[_lowerAddress].percentage
+        ) {
+          const _type =
+            result[_lowerAddress]['usd'] > priceRecord[_lowerAddress].price ? _constants.INCREASE : _constants.DECREASE;
+          priceRecord = {
+            ...priceRecord,
+            [_lowerAddress]: {
+              _type,
+              _percentage: result[_lowerAddress]['usd_24h_change'],
+              price: result[_lowerAddress]['usd']
+            }
+          };
         } else {
-          priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+          priceRecord = {
+            ...priceRecord,
+            [_lowerAddress]: {
+              _type: _constants.INCREASE,
+              _percentage: result[_lowerAddress]['usd_24h_change'],
+              price: result[_lowerAddress]['usd']
+            }
+          };
         }
       }
     })
     .start();
 }
 
-function fetchBSCPricesAtIntervals(ids) {
-  const constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
-  const feed = new Feed(ETH_WEB3_URL, ETH_CONTRACT_ADDRESS);
+function fetchBSCPricesAtIntervals(addresses) {
   cron
-    .schedule('*/2 * * * *', () => {
-      for (const id of ids) {
-        let price = await feed.fetchPrice(id);
-        price = price / 10 ** (await feed.getDecimals(id));
-        let _type = constants.INCREASE;
-        let _percentage = 0;
-        if (!!priceRecord[id] && !!priceRecord[id].price && !!priceRecord[id].type && !!priceRecord[id].percentage) {
-          _percentage =
-            priceRecord[id].price > price
-              ? ((priceRecord[id].price - price) * 100) / priceRecord[id].price
-              : ((price - priceRecord[id].price) * 100) / price;
-
-          _type = price > priceRecord[id].price ? constants.INCREASE : constants.DECREASE;
-          priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+    .schedule('*/2 * * * *', async () => {
+      const priceResp = await axios.get(
+        `${coinGeckoTokenPriceAPI.replace(':id', 'binance-smart-chain')}?contract_addresses=${addresses.join(
+          ','
+        )}&vs_currencies=usd&include_24hr_change=true`
+      );
+      const result = priceResp.data;
+      for (const address of addresses) {
+        const _lowerAddress = address.toLowerCase();
+        if (
+          !!priceRecord[_lowerAddress] &&
+          !!priceRecord[_lowerAddress].price &&
+          !!priceRecord[_lowerAddress].type &&
+          !!priceRecord[_lowerAddress].percentage
+        ) {
+          const _type =
+            result[_lowerAddress]['usd'] > priceRecord[_lowerAddress].price ? _constants.INCREASE : _constants.DECREASE;
+          priceRecord = {
+            ...priceRecord,
+            [_lowerAddress]: {
+              _type,
+              _percentage: result[_lowerAddress]['usd_24h_change'],
+              price: result[_lowerAddress]['usd']
+            }
+          };
         } else {
-          priceRecord = { ...priceRecord, [id]: { _type, _percentage, price } };
+          priceRecord = {
+            ...priceRecord,
+            [_lowerAddress]: {
+              _type: _constants.INCREASE,
+              _percentage: result[_lowerAddress]['usd_24h_change'],
+              price: result[_lowerAddress]['usd']
+            }
+          };
         }
       }
     })
@@ -144,9 +172,9 @@ function emitPriceAtIntervals() {
 }
 
 async function initializeFetchingAndEmissions() {
-  const [ethIds, bscIds] = await Promise.all([fetchIdsOnEthereum(), fetchIdsOnBinance()]);
-  fetchETHPricesAtIntervals(ethIds);
-  fetchBSCPricesAtIntervals(bscIds);
+  const [ethAddresses, bscAddresses] = await Promise.all([fetchAddressesOnEthereum(), fetchAddressesOnBinance()]);
+  fetchETHPricesAtIntervals(ethAddresses);
+  fetchBSCPricesAtIntervals(bscAddresses);
 
   emitPriceAtIntervals();
 }
