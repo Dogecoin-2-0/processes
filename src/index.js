@@ -50,6 +50,8 @@ app.use((req, res, next) => {
 app.use('/', router);
 
 const server = require('http').createServer(app);
+const fs = require('fs');
+const path = require('path');
 const { Server } = require('socket.io');
 const io = new Server(server);
 let priceRecord = {};
@@ -59,7 +61,12 @@ const coinGeckoCoinPriceAPI = 'https://api.coingecko.com/api/v3/simple/price';
 const coinGeckoTokenPriceAPI = 'https://api.coingecko.com/api/v3/simple/token_price/:id';
 const _constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
 
-const _coinsList = ['ethereum', 'bitcoin'];
+function fetchCoinsListFromCoinGecko() {
+  cron.schedule('* * * * *', async () => {
+    const _coinsListResp = await axios.get('https://api.coingecko.com/api/v3/coins/list');
+    fs.writeFileSync(path.join(__dirname, 'coinslist.json'), JSON.stringify(_coinsListResp.data));
+  });
+}
 
 function fetchAddressesOnEthereum() {
   return axios.get(`${ASSETS_URL}/assets/tokens/ethereum/addresses`).then(res => {
@@ -76,7 +83,43 @@ function fetchAddressesOnBinance() {
 }
 
 function fetchCoinPricesAtIntervals() {
-  cron.schedule('*/2 * * * *', async () => {});
+  cron.schedule('*/2 * * * *', async () => {
+    const _coinsList = JSON.parse(fs.readFileSync(path.join(__dirname, 'coinslist.json')).toString()).map(
+      coin => coin.id
+    );
+    const priceResp = await axios.get(
+      `${coinGeckoCoinPriceAPI}?ids=${_coinsList.join(',')}&vs_currencies=usd&include_24hr_change=true`
+    );
+    const result = priceResp.data;
+    for (const id of _coinsList) {
+      const _lowerId = id.toLowerCase();
+      if (
+        !!priceRecord[_lowerId] &&
+        !!priceRecord[_lowerId].price &&
+        !!priceRecord[_lowerId]._type &&
+        !!priceRecord[_lowerId]._percentage
+      ) {
+        const _type = result[_lowerId]['usd'] > priceRecord[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
+        priceRecord = {
+          ...priceRecord,
+          [_lowerId]: {
+            _type,
+            _percentage: result[_lowerId]['usd_24h_change'],
+            price: result[_lowerId]['usd']
+          }
+        };
+      } else {
+        priceRecord = {
+          ...priceRecord,
+          [_lowerId]: {
+            _type: _constants.INCREASE,
+            _percentage: result[_lowerId]['usd_24h_change'],
+            price: result[_lowerId]['usd']
+          }
+        };
+      }
+    }
+  });
 }
 
 function fetchETHPricesAtIntervals(addresses) {
@@ -173,6 +216,8 @@ function emitPriceAtIntervals() {
 
 async function initializeFetchingAndEmissions() {
   const [ethAddresses, bscAddresses] = await Promise.all([fetchAddressesOnEthereum(), fetchAddressesOnBinance()]);
+  fetchCoinsListFromCoinGecko();
+  fetchCoinPricesAtIntervals();
   fetchETHPricesAtIntervals(ethAddresses);
   fetchBSCPricesAtIntervals(bscAddresses);
 
