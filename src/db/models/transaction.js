@@ -1,7 +1,7 @@
 const { Schema, model } = require('mongoose');
 
 const TransactionSchema = new Schema({
-  tx_id: { type: String, required: true },
+  tx_id: { type: String, required: true, unique: true },
   blockchain: { type: String, required: true }
 });
 

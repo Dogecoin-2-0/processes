@@ -15,17 +15,29 @@ class Subscription {
   }
 
   getSubscription(address) {
-    return Promise.resolve(this.model.findOne({ address: { $regex: '^' + address + '$', $options: 'i' } }));
+    return Promise.resolve(
+      this.model.findOne({
+        address: { $regex: '^' + address + '$', $options: 'i' }
+      })
+    );
   }
 
   updateSubscription(address, token) {
     return Promise.resolve(
-      this.model.findOneAndUpdate({ address: { $regex: '^' + address + '$', $options: 'i' } }, { token }, { new: true })
+      this.model.findOneAndUpdate(
+        { address: { $regex: '^' + address + '$', $options: 'i' } },
+        { token },
+        { new: true }
+      )
     );
   }
 
   deleteSubscription(address) {
-    return Promise.resolve(this.model.findOneAndDelete({ address: { $regex: '^' + address + '$', $options: 'i' } }));
+    return Promise.resolve(
+      this.model.findOneAndDelete({
+        address: { $regex: '^' + address + '$', $options: 'i' }
+      })
+    );
   }
 }
 
