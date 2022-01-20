@@ -9,15 +9,6 @@ const db = require('./db');
 const router = express.Router();
 const CustomError = require('./custom/error');
 
-async function fetchTxWithHash(_hash, blockchain) {
-  const evmCompat = ['ethereum', 'smartchain'];
-  const web3 = new Web3();
-
-  if (evmCompat.includes(blockchain)) {
-    return web3.eth.getTransaction(_hash);
-  }
-}
-
 router
   .route('/transactions')
   .post(async (req, res) => {
@@ -102,6 +93,7 @@ const fs = require('fs');
 const path = require('path');
 const { Server } = require('socket.io');
 const io = new Server(server);
+const supportedCoins = require('./supportedCoins');
 let socketIds = [];
 const port = parseInt(process.env.PORT || '16000');
 const coinGeckoCoinPriceAPI = 'https://api.coingecko.com/api/v3/simple/price';
@@ -112,7 +104,10 @@ function fetchCoinsListFromCoinGecko() {
   cron
     .schedule('* * * * *', async () => {
       const _coinsListResp = await axios.get('https://api.coingecko.com/api/v3/coins/list');
-      fs.writeFileSync(path.join(__dirname, 'coinslist.json'), JSON.stringify(_coinsListResp.data));
+      fs.writeFileSync(
+        path.join(__dirname, 'coinslist.json'),
+        JSON.stringify(_coinsListResp.data.filter(item => supportedCoins.some(v => new RegExp(v).test(item.name))))
+      );
     })
     .start();
 }
