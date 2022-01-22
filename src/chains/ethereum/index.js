@@ -1,7 +1,8 @@
-import Web3 from 'web3';
+const store = require('../../helpers/localStore');
 
-const web3 = new Web3(new Web3.providers.HttpProvider(''));
-
-module.exports = {
-  watchTransactions: cb => {}
-};
+class EthProcesses {
+  lastProcessBlock(block) {
+    const newBlock = block + 1;
+    store._addToStore('eth_last_processed_block', newBlock);
+  }
+}
