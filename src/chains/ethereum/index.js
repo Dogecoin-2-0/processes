@@ -17,8 +17,7 @@ class EthProcesses {
     const blockInfo = await this.web3.eth.getBlock(block_id);
     try {
       if (blockInfo.transactions) {
-        for (const el of blockInfo.transactions)
-          this.getTransactionDetail(el, block_id);
+        for (const el of blockInfo.transactions) this.getTransactionDetail(el, block_id);
       }
     } catch (error) {
       console.log(error);
@@ -28,11 +27,7 @@ class EthProcesses {
   async getTransactionDetail(transaction_id, block_id) {
     const txReceipt = await this.web3.eth.getTransactionReceipt(transaction_id);
 
-    if (
-      txReceipt !== null &&
-      typeof txReceipt.status !== 'undefined' &&
-      !txReceipt.status
-    ) {
+    if (txReceipt !== null && typeof txReceipt.status !== 'undefined' && !txReceipt.status) {
       console.log('Tx receipt status failed');
       return;
     }
@@ -49,11 +44,7 @@ class EthProcesses {
             data: this.web3.utils.sha3('decimals()')
           });
           const isERC20 = callValue !== '0x' || callValue !== '0x0';
-          if (
-            isERC20 &&
-            log.topics[1] !== undefined &&
-            log.topics[2] !== undefined
-          ) {
+          if (isERC20 && log.topics[1] !== undefined && log.topics[2] !== undefined) {
             const contract = new this.web3.eth.Contract(null, log.address);
             const decimals = await contract.methods.decimals().call();
             transactionDetail = {
@@ -65,17 +56,13 @@ class EthProcesses {
               amount: log.data / decimals,
               is_erc_20: true
             };
-            const accountTo = await db.models.wallet.getWallet(
-              transactionDetail.to
-            );
+            const accountTo = await db.models.wallet.getWallet(transactionDetail.to);
 
             if (!!accountTo) {
               // Push transaction detail
             }
 
-            const accountFrom = await db.models.wallet.getWallet(
-              transactionDetail.from
-            );
+            const accountFrom = await db.models.wallet.getWallet(transactionDetail.from);
 
             if (!!accountFrom) {
               // Push transaction detail
@@ -94,17 +81,13 @@ class EthProcesses {
             is_erc_20: false
           };
 
-          const accountTo = await db.models.wallet.getWallet(
-            transactionDetail.to
-          );
+          const accountTo = await db.models.wallet.getWallet(transactionDetail.to);
 
           if (!!accountTo) {
             // Push transaction
           }
 
-          const accountFrom = await db.models.wallet.getWallet(
-            transactionDetail.from
-          );
+          const accountFrom = await db.models.wallet.getWallet(transactionDetail.from);
 
           if (!!accountFrom) {
             // Push transaction
@@ -118,11 +101,8 @@ class EthProcesses {
 
   async processBlock() {
     const currentBlock = await this.web3.eth.getBlockNumber();
-    const _block_to_start_from = store._getFromStore(
-      'eth_last_processed_block'
-    );
-    const lastBlockToProcess =
-      currentBlock - this.config.min_block_confirmation;
+    const _block_to_start_from = store._getFromStore('eth_last_processed_block');
+    const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
 
     if (_block_to_start_from <= lastBlockToProcess) {
       this.lastProcessBlock(_block_to_start_from);
