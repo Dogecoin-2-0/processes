@@ -11,11 +11,11 @@ class RedisStore {
   }
 
   setVal(key, field, value, expiresIn = 0) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       this.client
         .hSet(key, field, JSON.stringify(value))
         .then(_val => {
-          if (expiresIn !== 0) this.client.expire(key, expiresIn * 60);
+          if (expiresIn !== 0) await this.client.expire(key, expiresIn * 60);
 
           resolve(_val);
         })
