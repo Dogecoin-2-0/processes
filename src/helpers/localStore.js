@@ -21,7 +21,10 @@ class LocalStore {
     const _store = this._getStore();
     let _storeJson = JSON.parse(_store.toString());
     _storeJson = { ..._storeJson, [key]: val };
-    fs.writeFileSync(path.join(__dirname, '../store.json'), JSON.stringify(_storeJson));
+    fs.writeFileSync(
+      path.join(__dirname, '../store.json'),
+      JSON.stringify(_storeJson)
+    );
   }
 
   _getFromStore(key) {

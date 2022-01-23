@@ -24,7 +24,11 @@ class Subscription {
 
   updateSubscription(address, token) {
     return Promise.resolve(
-      this.model.findOneAndUpdate({ address: { $regex: '^' + address + '$', $options: 'i' } }, { token }, { new: true })
+      this.model.findOneAndUpdate(
+        { address: { $regex: '^' + address + '$', $options: 'i' } },
+        { token },
+        { new: true }
+      )
     );
   }
 

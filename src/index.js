@@ -23,11 +23,14 @@ router
   .get(async (req, res) => {
     try {
       const { blockchain } = req.query;
-      if (!blockchain) throw new CustomError(400, "'Blockchain' query parameter is required");
+      if (!blockchain)
+        throw new CustomError(400, "'Blockchain' query parameter is required");
 
       let result = await db.models.tx.findAllTx();
       result = result.filter(tx => tx.blockchain === blockchain);
-      result = result.map(async tx => await fetchTxWithHash(tx.tx_id, blockchain));
+      result = result.map(
+        async tx => await fetchTxWithHash(tx.tx_id, blockchain)
+      );
       result = await Promise.all(result);
       return res.status(200).json({ result });
     } catch (error) {
@@ -52,8 +55,12 @@ router
       const sub = await db.models.subscription.getSubscription(address);
       let result;
       if (!!sub) {
-        if (sub.token === token) throw new CustomError(400, 'Already subscribed for push');
-        result = await db.models.subscription.updateSubscription(address, token);
+        if (sub.token === token)
+          throw new CustomError(400, 'Already subscribed for push');
+        result = await db.models.subscription.updateSubscription(
+          address,
+          token
+        );
         return res.status(200).json({ result });
       }
 
@@ -71,7 +78,10 @@ router
       const { address } = req.body;
 
       if (!!address || typeof address !== 'string')
-        throw new CustomError(400, 'Expects a string but found ' + typeof address);
+        throw new CustomError(
+          400,
+          'Expects a string but found ' + typeof address
+        );
 
       await db.models.subscription.deleteSubscription(address);
       return res.status(200).json({ result: 'DONE' });
@@ -97,50 +107,67 @@ const supportedCoins = require('./supportedCoins');
 let socketIds = [];
 const port = parseInt(process.env.PORT || '16000');
 const coinGeckoCoinPriceAPI = 'https://api.coingecko.com/api/v3/simple/price';
-const coinGeckoTokenPriceAPI = 'https://api.coingecko.com/api/v3/simple/token_price/:id';
+const coinGeckoTokenPriceAPI =
+  'https://api.coingecko.com/api/v3/simple/token_price/:id';
 const _constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
 
 function fetchCoinsListFromCoinGecko() {
   cron
     .schedule('* * * * *', async () => {
-      const _coinsListResp = await axios.get('https://api.coingecko.com/api/v3/coins/list');
+      const _coinsListResp = await axios.get(
+        'https://api.coingecko.com/api/v3/coins/list'
+      );
       fs.writeFileSync(
         path.join(__dirname, 'coinslist.json'),
-        JSON.stringify(_coinsListResp.data.filter(item => supportedCoins.some(v => new RegExp(v).test(item.name))))
+        JSON.stringify(
+          _coinsListResp.data.filter(item =>
+            supportedCoins.some(v => new RegExp(v).test(item.name))
+          )
+        )
       );
     })
     .start();
 }
 
 function fetchAddressesOnEthereum() {
-  return axios.get(`${ASSETS_URL}/assets/tokens/ethereum/addresses`).then(res => {
-    if (res.status >= 400) throw new Error(`API responded with ${res.status}`);
-    return res.data.result;
-  });
+  return axios
+    .get(`${ASSETS_URL}/assets/tokens/ethereum/addresses`)
+    .then(res => {
+      if (res.status >= 400)
+        throw new Error(`API responded with ${res.status}`);
+      return res.data.result;
+    });
 }
 
 function fetchAddressesOnBinance() {
-  return axios.get(`${ASSETS_URL}/assets/tokens/binance/addresses`).then(res => {
-    if (res.status >= 400) throw new Error(`API responded with ${res.status}`);
-    return res.data.result;
-  });
+  return axios
+    .get(`${ASSETS_URL}/assets/tokens/binance/addresses`)
+    .then(res => {
+      if (res.status >= 400)
+        throw new Error(`API responded with ${res.status}`);
+      return res.data.result;
+    });
 }
 
 function fetchCoinPricesAtIntervals() {
   cron
     .schedule('*/2 * * * *', async () => {
       try {
-        const _coinsList = JSON.parse(fs.readFileSync(path.join(__dirname, 'coinslist.json')).toString()).map(
-          coin => coin.id
-        );
+        const _coinsList = JSON.parse(
+          fs.readFileSync(path.join(__dirname, 'coinslist.json')).toString()
+        ).map(coin => coin.id);
         const priceResp = await axios.get(
-          `${coinGeckoCoinPriceAPI}?ids=${_coinsList.join(',')}&vs_currencies=usd&include_24hr_change=true`
+          `${coinGeckoCoinPriceAPI}?ids=${_coinsList.join(
+            ','
+          )}&vs_currencies=usd&include_24hr_change=true`
         );
         const result = priceResp.data;
         let record;
 
         if (fs.existsSync(path.join(__dirname, 'prices.json'))) {
-          record = JSON.parse(fs.readFileSync(path.join(__dirname, 'prices.json')).toString());
+          record = JSON.parse(
+            fs.readFileSync(path.join(__dirname, 'prices.json')).toString()
+          );
         } else record = {};
 
         for (const id of _coinsList) {
@@ -152,7 +179,10 @@ function fetchCoinPricesAtIntervals() {
             !!record[_lowerId]._type &&
             !!record[_lowerId]._percentage
           ) {
-            const _type = result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
+            const _type =
+              result[_lowerId]['usd'] > record[_lowerId].price
+                ? _constants.INCREASE
+                : _constants.DECREASE;
             record = {
               ...record,
               [_lowerId]: {
@@ -172,7 +202,10 @@ function fetchCoinPricesAtIntervals() {
             };
           }
         }
-        fs.writeFileSync(path.join(__dirname, 'prices.json'), JSON.stringify(record));
+        fs.writeFileSync(
+          path.join(__dirname, 'prices.json'),
+          JSON.stringify(record)
+        );
       } catch (error) {
         console.log(error);
       }
@@ -185,7 +218,10 @@ function fetchETHPricesAtIntervals(addresses) {
     .schedule('*/2 * * * *', async () => {
       try {
         const priceResp = await axios.get(
-          `${coinGeckoTokenPriceAPI.replace(':id', 'ethereum')}?contract_addresses=${addresses.join(
+          `${coinGeckoTokenPriceAPI.replace(
+            ':id',
+            'ethereum'
+          )}?contract_addresses=${addresses.join(
             ','
           )}&vs_currencies=usd&include_24hr_change=true`
         );
@@ -193,7 +229,9 @@ function fetchETHPricesAtIntervals(addresses) {
         let record;
 
         if (fs.existsSync(path.join(__dirname, 'prices.json'))) {
-          record = JSON.parse(fs.readFileSync(path.join(__dirname, 'prices.json')).toString());
+          record = JSON.parse(
+            fs.readFileSync(path.join(__dirname, 'prices.json')).toString()
+          );
         } else record = {};
 
         for (const id of addresses) {
@@ -205,7 +243,10 @@ function fetchETHPricesAtIntervals(addresses) {
             !!record[_lowerId]._type &&
             !!record[_lowerId]._percentage
           ) {
-            const _type = result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
+            const _type =
+              result[_lowerId]['usd'] > record[_lowerId].price
+                ? _constants.INCREASE
+                : _constants.DECREASE;
             record = {
               ...record,
               [_lowerId]: {
@@ -225,7 +266,10 @@ function fetchETHPricesAtIntervals(addresses) {
             };
           }
         }
-        fs.writeFileSync(path.join(__dirname, 'prices.json'), JSON.stringify(record));
+        fs.writeFileSync(
+          path.join(__dirname, 'prices.json'),
+          JSON.stringify(record)
+        );
       } catch (error) {
         console.log(error);
       }
@@ -238,7 +282,10 @@ function fetchBSCPricesAtIntervals(addresses) {
     .schedule('*/2 * * * *', async () => {
       try {
         const priceResp = await axios.get(
-          `${coinGeckoTokenPriceAPI.replace(':id', 'binance-smart-chain')}?contract_addresses=${addresses.join(
+          `${coinGeckoTokenPriceAPI.replace(
+            ':id',
+            'binance-smart-chain'
+          )}?contract_addresses=${addresses.join(
             ','
           )}&vs_currencies=usd&include_24hr_change=true`
         );
@@ -246,7 +293,9 @@ function fetchBSCPricesAtIntervals(addresses) {
         let record;
 
         if (fs.existsSync(path.join(__dirname, 'prices.json'))) {
-          record = JSON.parse(fs.readFileSync(path.join(__dirname, 'prices.json')).toString());
+          record = JSON.parse(
+            fs.readFileSync(path.join(__dirname, 'prices.json')).toString()
+          );
         } else record = {};
 
         for (const id of addresses) {
@@ -258,7 +307,10 @@ function fetchBSCPricesAtIntervals(addresses) {
             !!record[_lowerId]._type &&
             !!record[_lowerId]._percentage
           ) {
-            const _type = result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
+            const _type =
+              result[_lowerId]['usd'] > record[_lowerId].price
+                ? _constants.INCREASE
+                : _constants.DECREASE;
             record = {
               ...record,
               [_lowerId]: {
@@ -278,7 +330,10 @@ function fetchBSCPricesAtIntervals(addresses) {
             };
           }
         }
-        fs.writeFileSync(path.join(__dirname, 'prices.json'), JSON.stringify(record));
+        fs.writeFileSync(
+          path.join(__dirname, 'prices.json'),
+          JSON.stringify(record)
+        );
       } catch (error) {
         console.log(error);
       }
@@ -289,14 +344,20 @@ function fetchBSCPricesAtIntervals(addresses) {
 function emitPriceAtIntervals() {
   cron
     .schedule('* * * * *', () => {
-      const record = JSON.parse(fs.readFileSync(path.join(__dirname, 'prices.json')).toString());
-      for (const socketId of socketIds) io.to(socketId).emit('price', JSON.stringify({ ...record }));
+      const record = JSON.parse(
+        fs.readFileSync(path.join(__dirname, 'prices.json')).toString()
+      );
+      for (const socketId of socketIds)
+        io.to(socketId).emit('price', JSON.stringify({ ...record }));
     })
     .start();
 }
 
 async function initializeFetchingAndEmissions() {
-  const [ethAddresses, bscAddresses] = await Promise.all([fetchAddressesOnEthereum(), fetchAddressesOnBinance()]);
+  const [ethAddresses, bscAddresses] = await Promise.all([
+    fetchAddressesOnEthereum(),
+    fetchAddressesOnBinance()
+  ]);
   fetchCoinsListFromCoinGecko();
   fetchCoinPricesAtIntervals();
   fetchETHPricesAtIntervals(ethAddresses);
