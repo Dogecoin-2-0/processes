@@ -1,17 +1,19 @@
-import Web3 from 'web3';
+const Web3 = require('web3');
 const store = require('../../helpers/localStore');
 const redis = require('../../helpers/redis');
 const db = require('../../db');
 
 class EthProcesses {
   constructor(config = { min_block_confirmation: 3 }) {
+    const provider = new Web3.providers.HttpProvider('');
     this.web3 = new Web3();
     this.config = config;
   }
 
-  lastProcessBlock(block) {
+  async lastProcessBlock(block) {
     const newBlock = block + 1;
-    store._addToStore('eth_last_processed_block', newBlock);
+    const _val = await redis.simpleSet('eth_last_processed_block', newBlock);
+    console.log('Block processed! Redis response: ', _val);
   }
 
   async getBlockTransaction(block_id) {
@@ -61,7 +63,7 @@ class EthProcesses {
 
             if (!!accountTo) {
               // Push transaction detail to Redis store
-              const _val = await redis.setVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
+              const _val = await redis.setObjectVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
               console.log('Redis addition: ', _val);
             }
 
@@ -69,7 +71,7 @@ class EthProcesses {
 
             if (!!accountFrom) {
               // Push transaction detail to Redis store
-              const _val = await redis.setVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
+              const _val = await redis.setObjectVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
               console.log('Redis addition: ', _val);
             }
           }
@@ -90,7 +92,7 @@ class EthProcesses {
 
           if (!!accountTo) {
             // Push transaction to Redis store
-            const _val = await redis.setVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
+            const _val = await redis.setObjectVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
             console.log('Redis addition: ', _val);
           }
 
@@ -98,7 +100,7 @@ class EthProcesses {
 
           if (!!accountFrom) {
             // Push transaction to Redis store
-            const _val = await redis.setVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
+            const _val = await redis.setObjectVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
             console.log('Redis addition: ', transactionDetail);
           }
         }
@@ -108,15 +110,17 @@ class EthProcesses {
     }
   }
 
-  async processBlock() {
+  async processBlocks() {
     const currentBlock = await this.web3.eth.getBlockNumber();
-    const _block_to_start_from = store._getFromStore('eth_last_processed_block');
+    let _block_to_start_from = await redis.simpleGet('eth_last_processed_block');
+    _block_to_start_from = parseInt(_block_to_start_from);
     const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
 
     if (_block_to_start_from <= lastBlockToProcess) {
-      this.lastProcessBlock(_block_to_start_from);
+      await this.lastProcessBlock(_block_to_start_from);
+      await this.getBlockTransaction(_block_to_start_from);
     }
   }
 }
 
-module.exports = EthProcesses;
+module.exports = new EthProcesses();

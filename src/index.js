@@ -233,58 +233,7 @@ function fetchETHPricesAtIntervals(addresses) {
     .start();
 }
 
-function fetchBSCPricesAtIntervals(addresses) {
-  cron
-    .schedule('*/2 * * * *', async () => {
-      try {
-        const priceResp = await axios.get(
-          `${coinGeckoTokenPriceAPI.replace(':id', 'binance-smart-chain')}?contract_addresses=${addresses.join(
-            ','
-          )}&vs_currencies=usd&include_24hr_change=true`
-        );
-        const result = priceResp.data;
-        let record;
-
-        if (fs.existsSync(path.join(__dirname, 'prices.json'))) {
-          record = JSON.parse(fs.readFileSync(path.join(__dirname, 'prices.json')).toString());
-        } else record = {};
-
-        for (const id of addresses) {
-          const _lowerId = id.toLowerCase();
-
-          if (
-            !!record[_lowerId] &&
-            !!record[_lowerId].price &&
-            !!record[_lowerId]._type &&
-            !!record[_lowerId]._percentage
-          ) {
-            const _type = result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
-            record = {
-              ...record,
-              [_lowerId]: {
-                _type,
-                _percentage: result[_lowerId]['usd_24h_change'],
-                price: result[_lowerId]['usd']
-              }
-            };
-          } else {
-            record = {
-              ...record,
-              [_lowerId]: {
-                _type: _constants.INCREASE,
-                _percentage: result[_lowerId]['usd_24h_change'],
-                price: result[_lowerId]['usd']
-              }
-            };
-          }
-        }
-        fs.writeFileSync(path.join(__dirname, 'prices.json'), JSON.stringify(record));
-      } catch (error) {
-        console.log(error);
-      }
-    })
-    .start();
-}
+function fetchBSCPricesAtIntervals(addresses) {}
 
 function emitPriceAtIntervals() {
   cron
