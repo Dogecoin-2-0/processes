@@ -1,5 +1,6 @@
 import Web3 from 'web3';
 const store = require('../../helpers/localStore');
+const redis = require('../../helpers/redis');
 const db = require('../../db');
 
 class EthProcesses {
@@ -59,13 +60,17 @@ class EthProcesses {
             const accountTo = await db.models.wallet.getWallet(transactionDetail.to);
 
             if (!!accountTo) {
-              // Push transaction detail
+              // Push transaction detail to Redis store
+              const _val = await redis.setVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
+              console.log('Redis addition: ', _val);
             }
 
             const accountFrom = await db.models.wallet.getWallet(transactionDetail.from);
 
             if (!!accountFrom) {
-              // Push transaction detail
+              // Push transaction detail to Redis store
+              const _val = await redis.setVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
+              console.log('Redis addition: ', _val);
             }
           }
         }
@@ -84,13 +89,17 @@ class EthProcesses {
           const accountTo = await db.models.wallet.getWallet(transactionDetail.to);
 
           if (!!accountTo) {
-            // Push transaction
+            // Push transaction to Redis store
+            const _val = await redis.setVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
+            console.log('Redis addition: ', _val);
           }
 
           const accountFrom = await db.models.wallet.getWallet(transactionDetail.from);
 
           if (!!accountFrom) {
-            // Push transaction
+            // Push transaction to Redis store
+            const _val = await redis.setVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
+            console.log('Redis addition: ', transactionDetail);
           }
         }
       }
