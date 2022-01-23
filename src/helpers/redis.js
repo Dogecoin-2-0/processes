@@ -15,7 +15,7 @@ class RedisStore {
       this.client
         .hSet(key, field, JSON.stringify(value))
         .then(_val => {
-          if (expiresIn !== 0) await this.client.expire(key, expiresIn * 60);
+          if (expiresIn > 0) await this.client.expire(key, expiresIn * 60);
 
           resolve(_val);
         })
