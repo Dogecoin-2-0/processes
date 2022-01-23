@@ -5,17 +5,36 @@ const supportedCoins = require('./supportedCoins');
 const coinGeckoCoinPriceAPI = 'https://api.coingecko.com/api/v3/simple/price';
 const coinGeckoTokenPriceAPI = 'https://api.coingecko.com/api/v3/simple/token_price/:id';
 const _constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
+const { ASSETS_URL } = require('./env');
+
+function fetchAddressesOnEthereum() {
+  return axios.get(`${ASSETS_URL}/assets/tokens/ethereum/addresses`).then(res => {
+    if (res.status >= 400) throw new Error(`API responded with ${res.status}`);
+    return res.data.result;
+  });
+}
+
+function fetchAddressesOnBinance() {
+  return axios.get(`${ASSETS_URL}/assets/tokens/binance/addresses`).then(res => {
+    if (res.status >= 400) throw new Error(`API responded with ${res.status}`);
+    return res.data.result;
+  });
+}
 
 class CronService {
   static _fetchCoinListFromCoinGecko() {
     cron
       .schedule('* * * * *', async () => {
-        const _coinsListResp = await axios.get('https://api.coingecko.com/api/v3/coins/list');
-        const _val = await redis.simpleSet(
-          'coinslist',
-          JSON.stringify(_coinsListResp.data.filter(item => supportedCoins.some(v => new RegExp(v).test(item.name))))
-        );
-        console.log('Redis response: ', _val);
+        try {
+          const _coinsListResp = await axios.get('https://api.coingecko.com/api/v3/coins/list');
+          const _val = await redis.simpleSet(
+            'coinslist',
+            JSON.stringify(_coinsListResp.data.filter(item => supportedCoins.some(v => new RegExp(v).test(item.name))))
+          );
+          console.log('Redis response: ', _val);
+        } catch (error) {
+          console.log(error);
+        }
       })
       .start();
   }
@@ -77,6 +96,10 @@ class CronService {
       .start();
   }
 
+  /**
+   *
+   * @param {Array<string>} addresses
+   */
   static _fetchPricesOnBscChain(addresses) {
     cron
       .schedule('*/2 * * * *', async () => {
@@ -134,7 +157,11 @@ class CronService {
       .start();
   }
 
-  static _fetchPricesOnEthChain() {
+  /**
+   *
+   * @param {Array<string>} addresses
+   */
+  static _fetchPricesOnEthChain(addresses) {
     cron
       .schedule('*/2 * * * *', async () => {
         try {
@@ -190,4 +217,44 @@ class CronService {
       })
       .start();
   }
+
+  /**
+   *
+   * @param {(name: string, item: any) => void} cb
+   */
+  static _retrievePricesFromStore(cb) {
+    cron
+      .schedule('* * * * *', async () => {
+        try {
+          let _record;
+          const _exists = await redis.exists('prices');
+
+          if (_exists) {
+            _record = await redis.simpleGet('prices');
+            _record = JSON.parse(_record);
+          } else _record = {};
+          cb('price', _record);
+        } catch (error) {
+          console.log(error);
+        }
+      })
+      .start();
+  }
+
+  static async _initAllPriceFetching() {
+    try {
+      const [ethereumAddresses, binanceAddresses] = await Promise.all([
+        fetchAddressesOnEthereum(),
+        fetchAddressesOnBinance()
+      ]);
+      CronService._fetchCoinListFromCoinGecko();
+      CronService._fetchCoinPrices();
+      CronService._fetchPricesOnEthChain(ethereumAddresses);
+      CronService._fetchPricesOnBscChain(binanceAddresses);
+    } catch (error) {
+      console.log(error);
+    }
+  }
 }
+
+module.exports = CronService;
