@@ -9,6 +9,7 @@ class EthProcesses {
     this.web3 = new Web3(provider);
     this.config = config;
     this.processed_block_key = 'eth_last_processed_block';
+    this._chain = 'ethereum';
     this.lastProcessBlock = this.lastProcessBlock.bind(this);
     this.getBlockTransaction = this.getBlockTransaction.bind(this);
     this.getTransactionDetail = this.getTransactionDetail.bind(this);
@@ -43,7 +44,7 @@ class EthProcesses {
     try {
       const tx = await this.web3.eth.getTransaction(transaction_id.toString());
       let transactionDetail = {
-        _chain: 'ethereum'
+        _chain: this._chain
       };
 
       if (!!txReceipt.status && txReceipt.logs.length > 0) {
