@@ -5,41 +5,40 @@ const { DB_URI } = require('./env');
 const db = require('./db');
 const router = express.Router();
 const CustomError = require('./custom/error');
+const _redis = require('./helpers/redis');
 
-router
-  .route('/transactions')
-  .post(async (req, res) => {
-    try {
-      const { tx_id, blockchain } = req.body;
-      const result = await db.models.tx.addTx(tx_id, blockchain);
-      return res.status(201).json({ result });
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
+router.get('/transactions', async (req, res) => {
+  try {
+    const { address } = req.query;
+    const _exists = await _redis.exists(address);
+
+    if (!_exists) {
+      throw new CustomError(404, 'Record not found');
     }
-  })
-  .get(async (req, res) => {
-    try {
-      const { blockchain } = req.query;
-      if (!blockchain) throw new CustomError(400, "'Blockchain' query parameter is required");
+    const result = await _redis.getVal(address);
+    Object.keys(result).forEach(val => {
+      result[val] = JSON.parse(result[val]);
+    });
+    return res.status(200).json({ result });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
 
-      let result = await db.models.tx.findAllTx();
-      result = result.filter(tx => tx.blockchain === blockchain);
-      result = result.map(async tx => await fetchTxWithHash(tx.tx_id, blockchain));
-      result = await Promise.all(result);
+router.post('/wallet', async (req, res) => {
+  try {
+    const { address } = req.body;
+    let result = await db.models.wallet.getWallet(address);
+
+    if (!!result) {
       return res.status(200).json({ result });
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
     }
-  })
-  .delete(async (req, res) => {
-    try {
-      const { tx_id } = req.query;
-      await db.models.tx.deleteTx(tx_id);
-      return res.status(200).json({ result: 'DONE' });
-    } catch (error) {
-      return res.status(500).json({ error: error.message });
-    }
-  });
+    result = await db.models.wallet.addWallet(address);
+    return res.status(201).json({ result });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
+});
 
 router
   .route('/push')
@@ -77,6 +76,7 @@ router
     }
   });
 
+app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
@@ -88,12 +88,12 @@ app.use('/', router);
 const server = require('http').createServer(app);
 const CronService = require('./cron');
 const SocketService = require('./socket');
-const _redis = require('./helpers/redis');
+const port = parseInt(process.env.PORT || '3600');
 
 const initAllProcesses = () => {
   SocketService._init(server);
   _redis._initConnection().then(() => {
-    CronService._initAllPriceFetching().then(() => {
+    CronService._initAllProcesses().then(() => {
       CronService._retrievePricesFromStore(SocketService._emitToAll);
     });
   });
@@ -103,7 +103,7 @@ server.listen(port, () => {
   console.log(`Server is running on port: ${port}`);
   mongoose
     .connect(DB_URI)
-    .then(async () => {
+    .then(() => {
       initAllProcesses();
       console.log('Mongoose connected');
     })

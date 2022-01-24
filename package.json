@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write **/**/*.{js,json}",
-    "nodemon": "nodemon src/index"
+    "nodemon": "nodemon src/index",
+    "start": "node src/index"
   },
   "repository": {
     "type": "git",

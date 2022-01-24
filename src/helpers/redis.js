@@ -3,6 +3,12 @@ const { createClient } = require('redis');
 class RedisStore {
   constructor() {
     this.client = createClient();
+    // this._initConnection = this._initConnection.bind(this);
+    // this.exists = this.exists.bind(this);
+    // this.getVal = this.getVal.bind(this);
+    // this.setObjectVal = this.setObjectVal.bind(this);
+    // this.simpleGet = this.simpleGet.bind(this);
+    // this.simpleSet = this.simpleSet.bind(this);
   }
 
   async _initConnection() {
@@ -19,10 +25,10 @@ class RedisStore {
    * @returns {Promise<number>}
    */
   setObjectVal(key, field, value, expiresIn = 0) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this.client
         .hSet(key, field, JSON.stringify(value))
-        .then(_val => {
+        .then(async _val => {
           if (expiresIn > 0) await this.client.expire(key, expiresIn * 60);
 
           resolve(_val);
@@ -39,10 +45,10 @@ class RedisStore {
    * @returns {Promise<string>}
    */
   simpleSet(key, value, expiresIn = 0) {
-    return new Promise(async (resolve, reject) => {
+    return new Promise((resolve, reject) => {
       this.client
         .set(key, typeof value === 'number' ? value.toString() : value)
-        .then(_val => {
+        .then(async _val => {
           if (expiresIn > 0) await this.client.expire(key, expiresIn * 60);
 
           resolve(_val);
