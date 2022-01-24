@@ -8,6 +8,7 @@ class EthProcesses {
     const provider = new Web3.providers.HttpProvider('https://ropsten.infura.io/v3/f9e72d0223644a4fa9a8807426b6dbef');
     this.web3 = new Web3(provider);
     this.config = config;
+    this.processed_block_key = 'eth_last_processed_block';
     this.lastProcessBlock = this.lastProcessBlock.bind(this);
     this.getBlockTransaction = this.getBlockTransaction.bind(this);
     this.getTransactionDetail = this.getTransactionDetail.bind(this);
@@ -16,7 +17,7 @@ class EthProcesses {
 
   async lastProcessBlock(block) {
     const newBlock = block + 1;
-    const _val = await redis.simpleSet('eth_last_processed_block', newBlock);
+    const _val = await redis.simpleSet(this.processed_block_key, newBlock);
     console.log('Block processed: %d, Redis response: %s', block, _val);
   }
 
@@ -121,14 +122,14 @@ class EthProcesses {
 
   async processBlocks() {
     const currentBlock = await this.web3.eth.getBlockNumber();
-    const _exists = await redis.exists('eth_last_processed_block');
+    const _exists = await redis.exists(this.processed_block_key);
 
     if (!_exists) {
-      const _val = await redis.simpleSet('eth_last_processed_block', currentBlock);
+      const _val = await redis.simpleSet(this.processed_block_key, currentBlock);
       console.log('Redis response: ', _val);
     }
 
-    let _block_to_start_from = await redis.simpleGet('eth_last_processed_block');
+    let _block_to_start_from = await redis.simpleGet(this.processed_block_key);
     _block_to_start_from = parseInt(_block_to_start_from);
     const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
 
