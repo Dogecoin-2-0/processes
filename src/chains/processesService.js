@@ -1,9 +1,10 @@
 const eth = require('./ethereum');
+const bsc = require('./smartchain');
 
 class ProcessesService {
   static async _initProcesses() {
     try {
-      await eth.processBlocks();
+      await Promise.all([eth.processBlocks(), bsc.processBlocks()]);
     } catch (error) {
       console.log(error);
     }
