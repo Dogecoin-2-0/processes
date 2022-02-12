@@ -7,12 +7,14 @@ const log = require('../../log');
 
 const providers = {
   mainnet: 'https://rpc.ankr.com/polygon',
-  testnet: 'https://rpc-mumbai.maticvigil.com'
+  testnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/polygon/mumbai'
 };
 
 class MaticProcesses {
   constructor(config = { min_block_confirmation: 3, latency: 4 }) {
-    const provider = new Web3.providers.HttpProvider(providers[CHAIN_ENV] || 'https://rpc-mumbai.maticvigil.com');
+    const provider = new Web3.providers.HttpProvider(
+      providers[CHAIN_ENV] || 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/polygon/mumbai'
+    );
     this.web3 = new Web3(provider);
     this.config = config;
     this.processed_block_key = 'matic_last_processed_block';
