@@ -11,7 +11,7 @@ const providers = {
 };
 
 class SmartchainProcesses {
-  constructor(config = { min_block_confirmation: 3, latency: 2 }) {
+  constructor(config = { min_block_confirmation: 3, latency: 3 }) {
     const provider = new Web3.providers.HttpProvider(
       providers[CHAIN_ENV] || 'https://data-seed-prebsc-1-s1.binance.org:8545'
     );
