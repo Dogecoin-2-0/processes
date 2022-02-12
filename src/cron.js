@@ -7,6 +7,7 @@ const coinGeckoTokenPriceAPI = 'https://api.coingecko.com/api/v3/simple/token_pr
 const _constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
 const { ASSETS_URL } = require('./env');
 const Processes = require('./chains/processesService');
+const log = require('./log');
 
 function fetchAddressesOnEthereum() {
   return axios.get(`${ASSETS_URL}/assets/tokens/ethereum/addresses`).then(res => {
@@ -32,9 +33,9 @@ class CronService {
             'coinslist',
             JSON.stringify(_coinsListResp.data.filter(item => supportedCoins.some(v => new RegExp(v).test(item.name))))
           );
-          console.log('Redis response: ', _val);
+          log('Redis response: %s', _val);
         } catch (error) {
-          console.log(error);
+          log('cron: %s', error.message);
         }
       })
       .start();
@@ -92,10 +93,10 @@ class CronService {
               }
             }
             const _val = await redis.simpleSet('prices', JSON.stringify(record));
-            console.log('Redis response: ', _val);
+            log('Redis response: %s', _val);
           }
         } catch (error) {
-          console.log(error);
+          log('cron: %s', error.message);
         }
       })
       .start();
@@ -154,9 +155,9 @@ class CronService {
             }
           }
           const _val = await redis.simpleSet('prices', JSON.stringify(record));
-          console.log('Redis response: ', _val);
+          log('Redis response: %s', _val);
         } catch (error) {
-          console.log(error);
+          log('cron: %s', error.message);
         }
       })
       .start();
@@ -215,9 +216,9 @@ class CronService {
             }
           }
           const _val = await redis.simpleSet('prices', JSON.stringify(record));
-          console.log('Redis response: ', _val);
+          log('Redis response: %s', _val);
         } catch (error) {
-          console.log(error);
+          log('cron: %s', error.message);
         }
       })
       .start();
@@ -240,7 +241,7 @@ class CronService {
           } else _record = {};
           cb('price', _record);
         } catch (error) {
-          console.log(error);
+          log('cron: %s', error.message);
         }
       })
       .start();
@@ -252,7 +253,7 @@ class CronService {
         try {
           await Processes._initProcesses();
         } catch (error) {
-          console.log(error);
+          log('cron: %s', error.message);
         }
       })
       .start();
@@ -270,7 +271,7 @@ class CronService {
       this._fetchPricesOnBscChain(binanceAddresses);
       this._processBlocks();
     } catch (error) {
-      console.log(error);
+      log('cron: %s', error.message);
     }
   }
 }
