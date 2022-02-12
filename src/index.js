@@ -89,6 +89,7 @@ const server = require('http').createServer(app);
 const CronService = require('./cron');
 const SocketService = require('./socket');
 const port = parseInt(process.env.PORT || '3600');
+const log = require('./log');
 
 const initAllProcesses = () => {
   SocketService._init(server);
@@ -100,12 +101,12 @@ const initAllProcesses = () => {
 };
 
 server.listen(port, () => {
-  console.log(`Server is running on port: ${port}`);
+  log('Server is running on port: %d', port);
   mongoose
     .connect(DB_URI)
     .then(() => {
       initAllProcesses();
-      console.log('Mongoose connected');
+      log('Mongoose connected');
     })
     .catch(console.error);
 });

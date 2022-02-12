@@ -6,19 +6,19 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'https://bsc-dataseed3.binance.org',
-  testnet: 'https://data-seed-prebsc-1-s1.binance.org:8545'
+  mainnet: 'https://rpc.ankr.com/avalanche',
+  testnet: 'https://api.avax-test.network/ext/bc/C/rpc'
 };
 
-class SmartchainProcesses {
+class AvaxProcesses {
   constructor(config = { min_block_confirmation: 3 }) {
     const provider = new Web3.providers.HttpProvider(
-      providers[CHAIN_ENV] || 'https://data-seed-prebsc-1-s1.binance.org:8545'
+      providers[CHAIN_ENV] || 'https://api.avax-test.network/ext/bc/C/rpc'
     );
     this.web3 = new Web3(provider);
     this.config = config;
-    this.processed_block_key = 'bsc_last_processed_block';
-    this._chain = 'smartchain';
+    this.processed_block_key = 'avax_last_processed_block';
+    this._chain = 'avalanche';
     this.lastProcessBlock = this.lastProcessBlock.bind(this);
     this.getBlockTransaction = this.getBlockTransaction.bind(this);
     this.getTransactionDetail = this.getTransactionDetail.bind(this);
@@ -150,4 +150,4 @@ class SmartchainProcesses {
   }
 }
 
-module.exports = new SmartchainProcesses();
+module.exports = new AvaxProcesses();

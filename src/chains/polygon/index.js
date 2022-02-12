@@ -6,19 +6,17 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'https://bsc-dataseed3.binance.org',
-  testnet: 'https://data-seed-prebsc-1-s1.binance.org:8545'
+  mainnet: 'https://rpc-mainnet.maticvigil.com',
+  testnet: 'https://rpc-mumbai.maticvigil.com'
 };
 
-class SmartchainProcesses {
+class MaticProcesses {
   constructor(config = { min_block_confirmation: 3 }) {
-    const provider = new Web3.providers.HttpProvider(
-      providers[CHAIN_ENV] || 'https://data-seed-prebsc-1-s1.binance.org:8545'
-    );
+    const provider = new Web3.providers.HttpProvider(providers[CHAIN_ENV] || 'https://rpc-mumbai.maticvigil.com');
     this.web3 = new Web3(provider);
     this.config = config;
-    this.processed_block_key = 'bsc_last_processed_block';
-    this._chain = 'smartchain';
+    this.processed_block_key = 'matic_last_processed_block';
+    this._chain = 'polygon';
     this.lastProcessBlock = this.lastProcessBlock.bind(this);
     this.getBlockTransaction = this.getBlockTransaction.bind(this);
     this.getTransactionDetail = this.getTransactionDetail.bind(this);
@@ -124,7 +122,7 @@ class SmartchainProcesses {
           }
         }
       }
-      log('Transaction detail: %s', JSON.stringify(transactionDetail, undefined, 2));
+      console.log('Transaction detail: ', JSON.stringify(transactionDetail, undefined, 2));
     } catch (error) {
       log(`${this._chain}: %s`, error.message);
     }
@@ -150,4 +148,4 @@ class SmartchainProcesses {
   }
 }
 
-module.exports = new SmartchainProcesses();
+module.exports = new MaticProcesses();

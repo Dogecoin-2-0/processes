@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write **/**/*.{js,json}",
     "nodemon": "nodemon src/index",
-    "start": "node src/index"
+    "start": "cross-env CHAIN_ENV=testnet DEBUG=app node src/index"
   },
   "repository": {
     "type": "git",
@@ -22,6 +22,8 @@
   "homepage": "https://github.com/Dogecoin-2-0/processes#readme",
   "dependencies": {
     "axios": "^0.24.0",
+    "cross-env": "^7.0.3",
+    "debug": "^4.3.3",
     "dotenv": "^10.0.0",
     "express": "^4.17.1",
     "firebase-admin": "^10.0.0",

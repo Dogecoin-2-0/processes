@@ -1,11 +1,20 @@
 const Web3 = require('web3');
 const redis = require('../../helpers/redis');
 const db = require('../../db');
+const { CHAIN_ENV } = require('../../env');
 const erc20Abi = require('../../assets/ERC20ABI.json');
+const log = require('../../log');
+
+const providers = {
+  mainnet: 'https://mainnet.eth.cloud.ava.do',
+  testnet: 'https://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX'
+};
 
 class EthProcesses {
   constructor(config = { min_block_confirmation: 3 }) {
-    const provider = new Web3.providers.HttpProvider('https://ropsten.infura.io/v3/f9e72d0223644a4fa9a8807426b6dbef');
+    const provider = new Web3.providers.HttpProvider(
+      providers[CHAIN_ENV] || 'https://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX'
+    );
     this.web3 = new Web3(provider);
     this.config = config;
     this.processed_block_key = 'eth_last_processed_block';
@@ -19,7 +28,7 @@ class EthProcesses {
   async lastProcessBlock(block) {
     const newBlock = block + 1;
     const _val = await redis.simpleSet(this.processed_block_key, newBlock);
-    console.log('Block processed: %d, Redis response: %s', block, _val);
+    log('Block processed: %d, Redis response: %s', block, _val);
   }
 
   async getBlockTransaction(block_id) {
@@ -29,7 +38,7 @@ class EthProcesses {
         for (const el of blockInfo.transactions) this.getTransactionDetail(el, block_id);
       }
     } catch (error) {
-      console.log(error);
+      log(`${this._chain}: %s`, error.message);
     }
   }
 
@@ -37,7 +46,7 @@ class EthProcesses {
     const txReceipt = await this.web3.eth.getTransactionReceipt(transaction_id);
 
     if (txReceipt !== null && typeof txReceipt.status !== 'undefined' && !txReceipt.status) {
-      console.log('Tx receipt status failed');
+      log(`${this._chain}: %s`, 'Tx receipt status failed');
       return;
     }
 
@@ -56,7 +65,7 @@ class EthProcesses {
           });
           const isERC20 = callValue !== '0x' || callValue !== '0x0';
           if (isERC20 && log.topics[1] !== undefined && log.topics[2] !== undefined) {
-            console.log('Start processing contract: ', log.address);
+            console.log('Start processing contract: %s', log.address);
             const contract = new this.web3.eth.Contract(erc20Abi, log.address);
             const decimals = await contract.methods.decimals().call();
             transactionDetail = {
@@ -74,7 +83,7 @@ class EthProcesses {
             if (!!accountTo) {
               // Push transaction detail to Redis store
               const _val = await redis.setObjectVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
-              console.log('Redis addition: ', _val);
+              console.log('Redis response: %d', _val);
             }
 
             const accountFrom = await db.models.wallet.getWallet(transactionDetail.from);
@@ -82,7 +91,7 @@ class EthProcesses {
             if (!!accountFrom) {
               // Push transaction detail to Redis store
               const _val = await redis.setObjectVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
-              console.log('Redis addition: ', _val);
+              console.log('Redis response: %d', _val);
             }
           }
         }
@@ -103,7 +112,7 @@ class EthProcesses {
           if (!!accountTo) {
             // Push transaction to Redis store
             const _val = await redis.setObjectVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
-            console.log('Redis addition: ', _val);
+            log('Redis response: %d', _val);
           }
 
           const accountFrom = await db.models.wallet.getWallet(transactionDetail.from);
@@ -111,13 +120,13 @@ class EthProcesses {
           if (!!accountFrom) {
             // Push transaction to Redis store
             const _val = await redis.setObjectVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
-            console.log('Redis addition: ', transactionDetail);
+            log('Redis response: %d', _val);
           }
         }
       }
-      console.log('Transaction detail: ', JSON.stringify(transactionDetail, undefined, 2));
+      log('Transaction detail: %s', JSON.stringify(transactionDetail, undefined, 2));
     } catch (error) {
-      console.log(error);
+      log(`${this._chain}: %s`, error.message);
     }
   }
 
@@ -127,7 +136,7 @@ class EthProcesses {
 
     if (!_exists) {
       const _val = await redis.simpleSet(this.processed_block_key, currentBlock);
-      console.log('Redis response: ', _val);
+      log('Redis response: %s', _val);
     }
 
     let _block_to_start_from = await redis.simpleGet(this.processed_block_key);
