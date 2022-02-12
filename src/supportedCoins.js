@@ -1,1 +1,1 @@
-module.exports = ['Bitcoin', 'Wrapped Bitcoin', 'Binance', 'Algorand', 'Ethereum', 'Polygon'];
+module.exports = ['Wrapped Bitcoin', 'Binance', 'Ethereum', 'Polygon', 'Avalanche'];
