@@ -11,7 +11,7 @@ const providers = {
 };
 
 class MaticProcesses {
-  constructor(config = { min_block_confirmation: 3, latency: 4 }) {
+  constructor(config = { min_block_confirmation: 3, latency: 3 }) {
     const provider = new Web3.providers.HttpProvider(
       providers[CHAIN_ENV] || 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/polygon/mumbai'
     );
@@ -132,20 +132,20 @@ class MaticProcesses {
   }
 
   async processBlocks() {
-    const currentBlock = await this.web3.eth.getBlockNumber();
-    const _exists = await redis.exists(this.processed_block_key);
+    if (this.count % this.config.latency === 0) {
+      const currentBlock = await this.web3.eth.getBlockNumber();
+      const _exists = await redis.exists(this.processed_block_key);
 
-    if (!_exists) {
-      const _val = await redis.simpleSet(this.processed_block_key, currentBlock);
-      log('Redis response: %s', _val);
-    }
+      if (!_exists) {
+        const _val = await redis.simpleSet(this.processed_block_key, currentBlock);
+        log('Redis response: %s', _val);
+      }
 
-    let _block_to_start_from = await redis.simpleGet(this.processed_block_key);
-    _block_to_start_from = parseInt(_block_to_start_from);
-    const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
+      let _block_to_start_from = await redis.simpleGet(this.processed_block_key);
+      _block_to_start_from = parseInt(_block_to_start_from);
+      const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
 
-    if (_block_to_start_from <= lastBlockToProcess) {
-      if (this.count % this.config.latency === 0) {
+      if (_block_to_start_from <= lastBlockToProcess) {
         await this.lastProcessBlock(_block_to_start_from);
         await this.getBlockTransaction(_block_to_start_from);
       }
