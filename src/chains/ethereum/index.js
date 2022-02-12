@@ -11,7 +11,7 @@ const providers = {
 };
 
 class EthProcesses {
-  constructor(config = { min_block_confirmation: 3 }) {
+  constructor(config = { min_block_confirmation: 3, latency: 3 }) {
     const provider = new Web3.providers.HttpProvider(
       providers[CHAIN_ENV] || 'https://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX'
     );
@@ -23,6 +23,7 @@ class EthProcesses {
     this.getBlockTransaction = this.getBlockTransaction.bind(this);
     this.getTransactionDetail = this.getTransactionDetail.bind(this);
     this.processBlocks = this.processBlocks.bind(this);
+    this.count = 0;
   }
 
   async lastProcessBlock(block) {
@@ -144,9 +145,13 @@ class EthProcesses {
     const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
 
     if (_block_to_start_from <= lastBlockToProcess) {
-      await this.lastProcessBlock(_block_to_start_from);
-      await this.getBlockTransaction(_block_to_start_from);
+      if (this.count % this.config.latency === 0) {
+        await this.lastProcessBlock(_block_to_start_from);
+        await this.getBlockTransaction(_block_to_start_from);
+      }
     }
+
+    this.count = this.count + 1;
   }
 }
 

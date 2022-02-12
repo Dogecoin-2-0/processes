@@ -6,12 +6,12 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'https://rpc-mainnet.maticvigil.com',
+  mainnet: 'https://rpc.ankr.com/polygon',
   testnet: 'https://rpc-mumbai.maticvigil.com'
 };
 
 class MaticProcesses {
-  constructor(config = { min_block_confirmation: 3 }) {
+  constructor(config = { min_block_confirmation: 3, latency: 4 }) {
     const provider = new Web3.providers.HttpProvider(providers[CHAIN_ENV] || 'https://rpc-mumbai.maticvigil.com');
     this.web3 = new Web3(provider);
     this.config = config;
@@ -21,6 +21,7 @@ class MaticProcesses {
     this.getBlockTransaction = this.getBlockTransaction.bind(this);
     this.getTransactionDetail = this.getTransactionDetail.bind(this);
     this.processBlocks = this.processBlocks.bind(this);
+    this.count = 0;
   }
 
   async lastProcessBlock(block) {
@@ -142,9 +143,13 @@ class MaticProcesses {
     const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
 
     if (_block_to_start_from <= lastBlockToProcess) {
-      await this.lastProcessBlock(_block_to_start_from);
-      await this.getBlockTransaction(_block_to_start_from);
+      if (this.count % this.config.latency === 0) {
+        await this.lastProcessBlock(_block_to_start_from);
+        await this.getBlockTransaction(_block_to_start_from);
+      }
     }
+
+    this.count = this.count + 1;
   }
 }
 

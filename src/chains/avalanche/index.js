@@ -11,7 +11,7 @@ const providers = {
 };
 
 class AvaxProcesses {
-  constructor(config = { min_block_confirmation: 3 }) {
+  constructor(config = { min_block_confirmation: 3, latency: 3 }) {
     const provider = new Web3.providers.HttpProvider(
       providers[CHAIN_ENV] || 'https://api.avax-test.network/ext/bc/C/rpc'
     );
@@ -23,6 +23,7 @@ class AvaxProcesses {
     this.getBlockTransaction = this.getBlockTransaction.bind(this);
     this.getTransactionDetail = this.getTransactionDetail.bind(this);
     this.processBlocks = this.processBlocks.bind(this);
+    this.count = 0;
   }
 
   async lastProcessBlock(block) {
@@ -144,9 +145,13 @@ class AvaxProcesses {
     const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
 
     if (_block_to_start_from <= lastBlockToProcess) {
-      await this.lastProcessBlock(_block_to_start_from);
-      await this.getBlockTransaction(_block_to_start_from);
+      if (this.count % this.config.latency === 0) {
+        await this.lastProcessBlock(_block_to_start_from);
+        await this.getBlockTransaction(_block_to_start_from);
+      }
     }
+
+    this.count = this.count + 1;
   }
 }
 
