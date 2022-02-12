@@ -6,7 +6,7 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'https://rpc.ankr.com/polygon',
+  mainnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/polygon/mainnet',
   testnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/polygon/mumbai'
 };
 
