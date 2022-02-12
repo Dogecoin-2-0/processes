@@ -6,14 +6,14 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'https://bsc-dataseed3.binance.org',
-  testnet: 'https://data-seed-prebsc-1-s1.binance.org:8545'
+  mainnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/bsc/mainnet',
+  testnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/bsc/testnet'
 };
 
 class SmartchainProcesses {
   constructor(config = { min_block_confirmation: 3, latency: 3 }) {
     const provider = new Web3.providers.HttpProvider(
-      providers[CHAIN_ENV] || 'https://data-seed-prebsc-1-s1.binance.org:8545'
+      providers[CHAIN_ENV] || 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/bsc/testnet'
     );
     this.web3 = new Web3(provider);
     this.config = config;
