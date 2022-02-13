@@ -247,18 +247,6 @@ class CronService {
       .start();
   }
 
-  static _processBlocks() {
-    cron
-      .schedule('*/2 * * * * *', async () => {
-        try {
-          await Processes._initProcesses();
-        } catch (error) {
-          log('cron: %s', error.message);
-        }
-      })
-      .start();
-  }
-
   static async _initAllProcesses() {
     try {
       const [ethereumAddresses, binanceAddresses] = await Promise.all([
@@ -269,7 +257,6 @@ class CronService {
       this._fetchCoinPrices();
       this._fetchPricesOnEthChain(ethereumAddresses);
       this._fetchPricesOnBscChain(binanceAddresses);
-      this._processBlocks();
     } catch (error) {
       log('cron: %s', error.message);
     }

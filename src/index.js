@@ -88,6 +88,7 @@ app.use('/', router);
 const server = require('http').createServer(app);
 const CronService = require('./cron');
 const SocketService = require('./socket');
+const ChainProcesses = require('./chains/processesService');
 const port = parseInt(process.env.PORT || '3600');
 const log = require('./log');
 
@@ -95,7 +96,9 @@ const initAllProcesses = () => {
   SocketService._init(server);
   _redis._initConnection().then(() => {
     CronService._initAllProcesses().then(() => {
-      CronService._retrievePricesFromStore(SocketService._emitToAll);
+      ChainProcesses._initProcesses().then(() => {
+        CronService._retrievePricesFromStore(SocketService._emitToAll);
+      });
     });
   });
 };
