@@ -6,14 +6,14 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'wss://api.avax.network/ext/bc/C/ws',
-  testnet: 'wss://api.avax-test.network/ext/bc/C/ws'
+  mainnet: 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/mainnet/ws',
+  testnet: 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/testnet/ws'
 };
 
 class AvaxProcesses {
   constructor(config = { latency: 10 }) {
     const provider = new Web3.providers.WebsocketProvider(
-      providers[CHAIN_ENV] || 'wss://api.avax-test.network/ext/bc/C/ws',
+      providers[CHAIN_ENV] || 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/testnet/ws',
       {
         clientConfig: {
           maxReceivedFrameSize: 100000000,
