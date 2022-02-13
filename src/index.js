@@ -76,6 +76,12 @@ router
     }
   });
 
+router.get('/health', (req, res) => {
+  return res.status(200).json({
+    status: 'HEALTHY'
+  });
+});
+
 app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
