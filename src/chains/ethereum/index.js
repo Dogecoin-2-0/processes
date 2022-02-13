@@ -6,14 +6,28 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'https://rpc.ankr.com/eth',
-  testnet: 'https://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX'
+  mainnet: 'wss://eth-mainnet.alchemyapi.io/v2/P_KxmSHH9OHOmenGLnAF4HPSVnRNc9cW',
+  testnet: 'wss://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX'
 };
 
 class EthProcesses {
-  constructor(config = { min_block_confirmation: 3, latency: 3 }) {
-    const provider = new Web3.providers.HttpProvider(
-      providers[CHAIN_ENV] || 'https://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX'
+  constructor(config = { latency: 10 }) {
+    const provider = new Web3.providers.WebsocketProvider(
+      providers[CHAIN_ENV] || 'wss://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX',
+      {
+        clientConfig: {
+          maxReceivedFrameSize: 100000000,
+          maxReceivedMessageSize: 100000000,
+          keepalive: true,
+          keepaliveInterval: 1600000
+        },
+        reconnect: {
+          auto: true,
+          delay: 5000,
+          maxAttempts: 5,
+          onTimeout: false
+        }
+      }
     );
     this.web3 = new Web3(provider);
     this.config = config;
@@ -23,7 +37,6 @@ class EthProcesses {
     this.getBlockTransaction = this.getBlockTransaction.bind(this);
     this.getTransactionDetail = this.getTransactionDetail.bind(this);
     this.processBlocks = this.processBlocks.bind(this);
-    this.count = 0;
   }
 
   async lastProcessBlock(block) {
@@ -36,7 +49,12 @@ class EthProcesses {
     const blockInfo = await this.web3.eth.getBlock(block_id);
     try {
       if (blockInfo.transactions) {
-        for (const el of blockInfo.transactions) this.getTransactionDetail(el, block_id);
+        for (const el of blockInfo.transactions) {
+          setTimeout(() => {
+            log('Now processing tx: %s', el);
+          }, this.config.latency * 1000);
+          this.getTransactionDetail(el, block_id);
+        }
       }
     } catch (error) {
       log(`${this._chain}: %s`, error.message);
@@ -60,6 +78,9 @@ class EthProcesses {
       if (!!txReceipt.status && txReceipt.logs.length > 0) {
         const logs = txReceipt.logs;
         for (const log of logs) {
+          setTimeout(() => {
+            console.log('Now processing log: %s', log.address);
+          }, this.config.latency * 1000);
           const callValue = await this.web3.eth.call({
             to: log.address,
             data: this.web3.utils.sha3('decimals()')
@@ -131,27 +152,40 @@ class EthProcesses {
     }
   }
 
-  async processBlocks() {
-    if (this.count % this.config.latency === 0) {
-      const currentBlock = await this.web3.eth.getBlockNumber();
-      const _exists = await redis.exists(this.processed_block_key);
+  processBlocks() {
+    this.web3.eth
+      .subscribe('newBlockHeaders', (error, event) => {
+        if (!error) log('Now processing event: %d', event.number);
+        else return;
+      })
+      .on('connected', subId => log('Event subscription ID: %s', subId))
+      .on('data', block => {
+        if (block.number) {
+          this.getBlockTransaction(block.number);
+          this.lastProcessBlock(block.number);
+        }
+      })
+      .on('error', error => log(`${this._chain}: %s`, error.message));
+  }
 
-      if (!_exists) {
-        const _val = await redis.simpleSet(this.processed_block_key, currentBlock);
-        log('Redis response: %s', _val);
-      }
+  async sync() {
+    const exists = await redis.exists(this.processed_block_key);
 
-      let _block_to_start_from = await redis.simpleGet(this.processed_block_key);
-      _block_to_start_from = parseInt(_block_to_start_from);
-      const lastBlockToProcess = currentBlock - this.config.min_block_confirmation;
+    if (exists) {
+      const lastBlock = await redis.simpleGet(this.processed_block_key);
+      setTimeout(() => {
+        log('Now syncing from: %d', parseInt(lastBlock));
+      }, this.config.latency * 1000);
+      const logs = await this.web3.eth.getPastLogs({ fromBlock: parseInt(lastBlock) });
 
-      if (_block_to_start_from <= lastBlockToProcess) {
-        await this.lastProcessBlock(_block_to_start_from);
-        await this.getBlockTransaction(_block_to_start_from);
+      for (const l of logs) {
+        if (l.blockNumber) {
+          this.getBlockTransaction(l.blockNumber);
+          this.lastProcessBlock(l.blockNumber);
+        }
       }
     }
-
-    this.count = this.count + 1;
+    log('Sync complete for: %s', this._chain);
   }
 }
 
