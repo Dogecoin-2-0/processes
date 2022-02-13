@@ -17,7 +17,7 @@ class SocketService {
    * @param {Server} server
    */
   static _init(server) {
-    this.io = new SocketServer(server);
+    this.io = new SocketServer(server, { cors: { origin: '*' } });
     this.io.on('connection', socket => {
       this.socketIds = [...this.socketIds, socket.id];
     });
