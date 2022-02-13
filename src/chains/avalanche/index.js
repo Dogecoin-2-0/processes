@@ -6,14 +6,14 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/mainnet',
-  testnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/testnet'
+  mainnet: 'https://api.avax.network/ext/bc/C/rpc',
+  testnet: 'https://api.avax-test.network/ext/bc/C/rpc'
 };
 
 class AvaxProcesses {
   constructor(config = { min_block_confirmation: 3, latency: 3 }) {
     const provider = new Web3.providers.HttpProvider(
-      providers[CHAIN_ENV] || 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/testnet'
+      providers[CHAIN_ENV] || 'https://api.avax-test.network/ext/bc/C/rpc'
     );
     this.web3 = new Web3(provider);
     this.config = config;

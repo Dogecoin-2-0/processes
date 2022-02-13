@@ -6,14 +6,14 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/eth/mainnet',
-  testnet: 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/eth/ropsten'
+  mainnet: 'https://rpc.ankr.com/eth',
+  testnet: 'https://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX'
 };
 
 class EthProcesses {
   constructor(config = { min_block_confirmation: 3, latency: 3 }) {
     const provider = new Web3.providers.HttpProvider(
-      providers[CHAIN_ENV] || 'https://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/eth/ropsten'
+      providers[CHAIN_ENV] || 'https://eth-ropsten.alchemyapi.io/v2/6u94O6TXVZnIC7N9xzfhR-HFch2p9ycX'
     );
     this.web3 = new Web3(provider);
     this.config = config;
