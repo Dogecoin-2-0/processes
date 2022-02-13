@@ -161,6 +161,9 @@ class MaticProcesses {
       .on('connected', subId => log('Event subscription ID: %s', subId))
       .on('data', block => {
         if (block.number) {
+          setTimeout(() => {
+            log('Now processing block: %d', block.number);
+          }, this.config.latency * 1000);
           this.getBlockTransaction(block.number);
           this.lastProcessBlock(block.number);
         }
@@ -180,6 +183,9 @@ class MaticProcesses {
 
       for (const l of logs) {
         if (l.blockNumber) {
+          setTimeout(() => {
+            log('Now syncing: %d', l.blockNumber);
+          }, this.config.latency * 1000);
           this.getBlockTransaction(l.blockNumber);
           this.lastProcessBlock(l.blockNumber);
         }
