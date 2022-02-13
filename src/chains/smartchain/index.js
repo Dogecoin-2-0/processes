@@ -179,7 +179,7 @@ class SmartchainProcesses {
       setTimeout(() => {
         log('Now syncing from: %d', parseInt(lastBlock));
       }, this.config.latency * 1000);
-      const logs = await this.web3.eth.getPastLogs({ fromBlock: parseInt(lastBlock) });
+      const logs = await this.web3.eth.getPastLogs({ fromBlock: parseInt(lastBlock) - 1 });
 
       for (const l of logs) {
         if (l.blockNumber) {
