@@ -43,7 +43,7 @@ class CronService {
 
   static _fetchCoinPrices() {
     cron
-      .schedule('*/2 * * * *', async () => {
+      .schedule('*/30 * * * * *', async () => {
         try {
           const _exists = await redis.exists('coinslist');
 
@@ -239,7 +239,7 @@ class CronService {
    */
   static _retrievePricesFromStore(cb) {
     cron
-      .schedule('/2 * * * * *', async () => {
+      .schedule('*/2 * * * * *', async () => {
         try {
           let _record;
           const _exists = await redis.exists('prices');
