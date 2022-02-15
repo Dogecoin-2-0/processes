@@ -77,7 +77,10 @@ class CronService {
                   ...record,
                   [_lowerId]: {
                     _type,
-                    _percentage: result[_lowerId]['usd_24h_change'],
+                    _percentage:
+                      _type === _constants.INCREASE
+                        ? ((result[_lowerId]['usd'] - record[_lowerId].price) / result[_lowerId]['usd']) * 100
+                        : ((record[_lowerId].price - result[_lowerId]['usd']) / record[_lowerId].price) * 100,
                     price: result[_lowerId]['usd']
                   }
                 };
@@ -86,7 +89,7 @@ class CronService {
                   ...record,
                   [_lowerId]: {
                     _type: _constants.INCREASE,
-                    _percentage: result[_lowerId]['usd_24h_change'],
+                    _percentage: 0,
                     price: result[_lowerId]['usd']
                   }
                 };
@@ -108,7 +111,7 @@ class CronService {
    */
   static _fetchPricesOnBscChain(addresses) {
     cron
-      .schedule('*/2 * * * *', async () => {
+      .schedule('*/30 * * * * *', async () => {
         try {
           const priceResp = await axios.get(
             `${coinGeckoTokenPriceAPI.replace(':id', 'binance-smart-chain')}?contract_addresses=${addresses.join(
@@ -139,7 +142,10 @@ class CronService {
                 ...record,
                 [_lowerId]: {
                   _type,
-                  _percentage: result[_lowerId]['usd_24h_change'],
+                  _percentage:
+                    _type === _constants.INCREASE
+                      ? ((result[_lowerId]['usd'] - record[_lowerId].price) / result[_lowerId]['usd']) * 100
+                      : ((record[_lowerId].price - result[_lowerId]['usd']) / record[_lowerId].price) * 100,
                   price: result[_lowerId]['usd']
                 }
               };
@@ -148,7 +154,7 @@ class CronService {
                 ...record,
                 [_lowerId]: {
                   _type: _constants.INCREASE,
-                  _percentage: result[_lowerId]['usd_24h_change'],
+                  _percentage: 0,
                   price: result[_lowerId]['usd']
                 }
               };
@@ -169,7 +175,7 @@ class CronService {
    */
   static _fetchPricesOnEthChain(addresses) {
     cron
-      .schedule('*/2 * * * *', async () => {
+      .schedule('*/30 * * * * *', async () => {
         try {
           const priceResp = await axios.get(
             `${coinGeckoTokenPriceAPI.replace(':id', 'ethereum')}?contract_addresses=${addresses.join(
@@ -200,7 +206,10 @@ class CronService {
                 ...record,
                 [_lowerId]: {
                   _type,
-                  _percentage: result[_lowerId]['usd_24h_change'],
+                  _percentage:
+                    _type === _constants.INCREASE
+                      ? ((result[_lowerId]['usd'] - record[_lowerId].price) / result[_lowerId]['usd']) * 100
+                      : ((record[_lowerId].price - result[_lowerId]['usd']) / record[_lowerId].price) * 100,
                   price: result[_lowerId]['usd']
                 }
               };
@@ -209,7 +218,7 @@ class CronService {
                 ...record,
                 [_lowerId]: {
                   _type: _constants.INCREASE,
-                  _percentage: result[_lowerId]['usd_24h_change'],
+                  _percentage: 0,
                   price: result[_lowerId]['usd']
                 }
               };
@@ -230,7 +239,7 @@ class CronService {
    */
   static _retrievePricesFromStore(cb) {
     cron
-      .schedule('* * * * *', async () => {
+      .schedule('/2 * * * * *', async () => {
         try {
           let _record;
           const _exists = await redis.exists('prices');
