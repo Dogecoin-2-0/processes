@@ -65,12 +65,7 @@ class CronService {
             for (const id of _coinsList) {
               const _lowerId = id.toLowerCase();
 
-              if (
-                !!record[_lowerId] &&
-                !!record[_lowerId].price &&
-                !!record[_lowerId]._type &&
-                !!record[_lowerId]._percentage
-              ) {
+              if (!!record[_lowerId]) {
                 const a_type =
                   result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
                 record = {
@@ -130,12 +125,7 @@ class CronService {
           for (const id of addresses) {
             const _lowerId = id.toLowerCase();
 
-            if (
-              !!record[_lowerId] &&
-              !!record[_lowerId].price &&
-              !!record[_lowerId]._type &&
-              !!record[_lowerId]._percentage
-            ) {
+            if (!!record[_lowerId]) {
               const a_type =
                 result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
               record = {
@@ -194,12 +184,7 @@ class CronService {
           for (const id of addresses) {
             const _lowerId = id.toLowerCase();
 
-            if (
-              !!record[_lowerId] &&
-              !!record[_lowerId].price &&
-              !!record[_lowerId]._type &&
-              !!record[_lowerId]._percentage
-            ) {
+            if (!!record[_lowerId]) {
               const a_type =
                 result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
               record = {
