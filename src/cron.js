@@ -71,14 +71,14 @@ class CronService {
                 !!record[_lowerId]._type &&
                 !!record[_lowerId]._percentage
               ) {
-                const _type =
+                const a_type =
                   result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
                 record = {
                   ...record,
                   [_lowerId]: {
-                    _type,
+                    _type: a_type,
                     _percentage:
-                      _type === _constants.INCREASE
+                      a_type === _constants.INCREASE
                         ? ((result[_lowerId]['usd'] - record[_lowerId].price) / result[_lowerId]['usd']) * 100
                         : ((record[_lowerId].price - result[_lowerId]['usd']) / record[_lowerId].price) * 100,
                     price: result[_lowerId]['usd']
@@ -136,14 +136,14 @@ class CronService {
               !!record[_lowerId]._type &&
               !!record[_lowerId]._percentage
             ) {
-              const _type =
+              const a_type =
                 result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
               record = {
                 ...record,
                 [_lowerId]: {
-                  _type,
+                  _type: a_type,
                   _percentage:
-                    _type === _constants.INCREASE
+                    a_type === _constants.INCREASE
                       ? ((result[_lowerId]['usd'] - record[_lowerId].price) / result[_lowerId]['usd']) * 100
                       : ((record[_lowerId].price - result[_lowerId]['usd']) / record[_lowerId].price) * 100,
                   price: result[_lowerId]['usd']
@@ -200,14 +200,14 @@ class CronService {
               !!record[_lowerId]._type &&
               !!record[_lowerId]._percentage
             ) {
-              const _type =
+              const a_type =
                 result[_lowerId]['usd'] > record[_lowerId].price ? _constants.INCREASE : _constants.DECREASE;
               record = {
                 ...record,
                 [_lowerId]: {
-                  _type,
+                  _type: a_type,
                   _percentage:
-                    _type === _constants.INCREASE
+                    a_type === _constants.INCREASE
                       ? ((result[_lowerId]['usd'] - record[_lowerId].price) / result[_lowerId]['usd']) * 100
                       : ((record[_lowerId].price - result[_lowerId]['usd']) / record[_lowerId].price) * 100,
                   price: result[_lowerId]['usd']
