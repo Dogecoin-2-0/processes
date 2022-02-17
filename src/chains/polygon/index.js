@@ -53,7 +53,7 @@ class MaticProcesses {
           setTimeout(() => {
             log('Now processing tx: %s', el);
           }, this.config.latency * 1000);
-          this.getTransactionDetail(el, block_id);
+          this.getTransactionDetail(el, block_id, blockInfo.timestamp * 1000);
         }
       }
     } catch (error) {
@@ -61,7 +61,7 @@ class MaticProcesses {
     }
   }
 
-  async getTransactionDetail(transaction_id, block_id) {
+  async getTransactionDetail(transaction_id, block_id, timestamp) {
     const txReceipt = await this.web3.eth.getTransactionReceipt(transaction_id);
 
     if (txReceipt !== null && typeof txReceipt.status !== 'undefined' && !txReceipt.status) {
@@ -98,7 +98,8 @@ class MaticProcesses {
               block_id: log.blockNumber,
               amount: log.data / 10 ** decimals,
               is_erc_20: true,
-              contract_address: log.address
+              contract_address: log.address,
+              timestamp
             };
             const accountTo = await db.models.wallet.getWallet(transactionDetail.to);
 
@@ -126,7 +127,8 @@ class MaticProcesses {
             to: tx.to,
             block_id,
             amount: this.web3.utils.fromWei(tx.value),
-            is_erc_20: false
+            is_erc_20: false,
+            timestamp
           };
 
           const accountTo = await db.models.wallet.getWallet(transactionDetail.to);
