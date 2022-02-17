@@ -6,7 +6,6 @@ const coinGeckoCoinPriceAPI = 'https://api.coingecko.com/api/v3/simple/price';
 const coinGeckoTokenPriceAPI = 'https://api.coingecko.com/api/v3/simple/token_price/:id';
 const _constants = { INCREASE: 'INCREASE', DECREASE: 'DECREASE' };
 const { ASSETS_URL } = require('./env');
-const Processes = require('./chains/processesService');
 const log = require('./log');
 
 function fetchAddressesOnEthereum() {

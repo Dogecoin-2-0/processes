@@ -21,7 +21,7 @@ router.get('/transactions', async (req, res) => {
     });
     return res.status(200).json({ result });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(error.errorCode || 500).json({ error: error.message });
   }
 });
 
