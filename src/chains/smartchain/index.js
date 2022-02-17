@@ -6,14 +6,14 @@ const erc20Abi = require('../../assets/ERC20ABI.json');
 const log = require('../../log');
 
 const providers = {
-  mainnet: 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/bsc/mainnet/ws',
-  testnet: 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/bsc/testnet/ws'
+  mainnet: 'wss://bsc-dataseed1.binance.org:443',
+  testnet: 'wss://ws-nd-829-018-058.p2pify.com/225dc4037130f0ccc242938858c8c44d'
 };
 
 class SmartchainProcesses {
   constructor(config = { latency: 10 }) {
     const provider = new Web3.providers.WebsocketProvider(
-      providers[CHAIN_ENV] || 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/bsc/testnet/ws',
+      providers[CHAIN_ENV] || 'wss://ws-nd-829-018-058.p2pify.com/225dc4037130f0ccc242938858c8c44d',
       {
         clientConfig: {
           maxReceivedFrameSize: 100000000,

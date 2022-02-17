@@ -7,13 +7,13 @@ const log = require('../../log');
 
 const providers = {
   mainnet: 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/mainnet/ws',
-  testnet: 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/testnet/ws'
+  testnet: 'wss://ws-nd-972-523-936.p2pify.com/54d40df2b8635d6db619f345696dd1bb/ext/bc/C/ws'
 };
 
 class AvaxProcesses {
   constructor(config = { latency: 10 }) {
     const provider = new Web3.providers.WebsocketProvider(
-      providers[CHAIN_ENV] || 'wss://speedy-nodes-nyc.moralis.io/558120230227a848a2bb7043/avalanche/testnet/ws',
+      providers[CHAIN_ENV] || 'wss://ws-nd-972-523-936.p2pify.com/54d40df2b8635d6db619f345696dd1bb/ext/bc/C/ws',
       {
         clientConfig: {
           maxReceivedFrameSize: 100000000,
