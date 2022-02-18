@@ -75,46 +75,55 @@ class MaticProcesses {
         _chain: this._chain
       };
 
-      if (!!txReceipt.status && txReceipt.logs.length > 0) {
-        const logs = txReceipt.logs;
-        for (const log of logs) {
-          setTimeout(() => {
-            console.log('Now processing log: %s', log.address);
-          }, this.config.latency * 1000);
-          const callValue = await this.web3.eth.call({
-            to: log.address,
-            data: this.web3.utils.sha3('decimals()')
-          });
-          const isERC20 = callValue !== '0x' || callValue !== '0x0';
-          if (isERC20 && log.topics[1] !== undefined && log.topics[2] !== undefined) {
-            console.log('Start processing contract: %s', log.address);
-            const contract = new this.web3.eth.Contract(erc20Abi, log.address);
-            const decimals = await contract.methods.decimals().call();
-            transactionDetail = {
-              ...transactionDetail,
-              tx_id: log.transactionHash,
-              from: tx.from,
-              to: tx.to,
-              block_id: log.blockNumber,
-              amount: log.data / 10 ** decimals,
-              is_erc_20: true,
-              contract_address: log.address,
-              timestamp
-            };
-            const accountTo = await db.models.wallet.getWallet(transactionDetail.to);
+      setTimeout(() => {}, this.config.latency * 1000);
+      const callValue = await this.web3.eth.call({
+        to: tx.to,
+        data: this.web3.utils.sha3('decimals()')
+      });
 
-            if (!!accountTo) {
-              // Push transaction detail to Redis store
-              const _val = await redis.setObjectVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
-              console.log('Redis response: %d', _val);
-            }
+      const isERC20 = callValue !== '0x' || callValue !== '0x0';
 
-            const accountFrom = await db.models.wallet.getWallet(transactionDetail.from);
+      if (isERC20) {
+        const txReceipt = await this.web3.eth.getTransactionReceipt(transaction_id);
 
-            if (!!accountFrom) {
-              // Push transaction detail to Redis store
-              const _val = await redis.setObjectVal(transactionDetail.from, transactionDetail.tx_id, transactionDetail);
-              console.log('Redis response: %d', _val);
+        if (!!txReceipt && !!txReceipt.logs) {
+          for (const log of txReceipt.logs) {
+            setTimeout(() => {
+              console.log('Now processing log: %s', log.address);
+            }, this.config.latency * 1000);
+            if (!!log.topics && log.topics.length <= 3 && log.topics[1] && log.topics[2]) {
+              const contract = new this.web3.eth.Contract(erc20Abi, tx.to);
+              const decimals = await contract.methods.decimals().call();
+              transactionDetail = {
+                ...transactionDetail,
+                from: '0x' + log.topics[1].substring(26, log.topics[1].length),
+                to: '0x' + log.topics[2].substring(26, log.topics[2].length),
+                tx_id: txReceipt.transactionHash,
+                block_id: txReceipt.blockNumber,
+                is_erc_20: true,
+                amount: log.data / 10 ** decimals,
+                contract_address: tx.to,
+                timestamp
+              };
+              const accountTo = await db.models.wallet.getWallet(transactionDetail.to);
+
+              if (!!accountTo) {
+                // Push transaction detail to Redis store
+                const _val = await redis.setObjectVal(transactionDetail.to, transactionDetail.tx_id, transactionDetail);
+                console.log('Redis response: %d', _val);
+              }
+
+              const accountFrom = await db.models.wallet.getWallet(transactionDetail.from);
+
+              if (!!accountFrom) {
+                // Push transaction detail to Redis store
+                const _val = await redis.setObjectVal(
+                  transactionDetail.from,
+                  transactionDetail.tx_id,
+                  transactionDetail
+                );
+                console.log('Redis response: %d', _val);
+              }
             }
           }
         }
@@ -126,7 +135,7 @@ class MaticProcesses {
             from: tx.from,
             to: tx.to,
             block_id,
-            amount: this.web3.utils.fromWei(tx.value),
+            amount: this.web3.utils.fromWei(parseInt(tx.value)),
             is_erc_20: false,
             timestamp
           };
