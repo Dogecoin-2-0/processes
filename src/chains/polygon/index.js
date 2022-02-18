@@ -62,13 +62,6 @@ class MaticProcesses {
   }
 
   async getTransactionDetail(transaction_id, block_id, timestamp) {
-    const txReceipt = await this.web3.eth.getTransactionReceipt(transaction_id);
-
-    if (txReceipt !== null && typeof txReceipt.status !== 'undefined' && !txReceipt.status) {
-      log(`${this._chain}: %s`, 'Tx receipt status failed');
-      return;
-    }
-
     try {
       const tx = await this.web3.eth.getTransaction(transaction_id.toString());
       let transactionDetail = {
