@@ -74,10 +74,13 @@ class MaticProcesses {
       let transactionDetail = {
         _chain: this._chain
       };
+
+      setTimeout(() => {}, this.config.latency * 1000);
       const callValue = await this.web3.eth.call({
         to: tx.to,
         data: this.web3.utils.sha3('decimals()')
       });
+
       const isERC20 = callValue !== '0x' || callValue !== '0x0';
 
       if (isERC20) {
@@ -85,6 +88,9 @@ class MaticProcesses {
 
         if (!!txReceipt && !!txReceipt.logs) {
           for (const log of txReceipt.logs) {
+            setTimeout(() => {
+              console.log('Now processing log: %s', log.address);
+            }, this.config.latency * 1000);
             if (!!log.topics && log.topics.length <= 3 && log.topics[1] && log.topics[2]) {
               const contract = new this.web3.eth.Contract(erc20Abi, tx.to);
               const decimals = await contract.methods.decimals().call();
