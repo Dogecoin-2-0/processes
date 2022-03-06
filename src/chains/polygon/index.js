@@ -7,7 +7,7 @@ const log = require('../../log');
 
 const providers = {
   mainnet: 'wss://ws-matic-mainnet.chainstacklabs.com',
-  testnet: 'wss://ws-matic-mumbai.chainstacklabs.com'
+  testnet: 'wss://ws-nd-807-258-769.p2pify.com/656d250d18e63120121b688dd3665cca'
 };
 
 class MaticProcesses {
