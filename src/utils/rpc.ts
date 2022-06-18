@@ -1,14 +1,13 @@
 import axios from 'axios';
 
 interface JsonRpcRequestBody {
-  jsonrpc: '2.0';
   method: string;
   params: Array<any>;
 }
 
 const rpcCall = (url: string, rpcSpec: JsonRpcRequestBody): Promise<any> => {
   return new Promise((resolve, reject) => {
-    axios.post(url, { ...rpcSpec, id: Math.floor(Math.random() * 4) + 1 }).then(response => {
+    axios.post(url, { ...rpcSpec, jsonrpc: '2.0', id: Math.floor(Math.random() * 4) + 1 }).then(response => {
       const { data } = response;
 
       if (!!data.result) resolve(data.result);
