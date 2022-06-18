@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, ModelStatic, Model, Op, HasManyOptions } from 'sequelize';
+import { Sequelize, DataTypes, ModelStatic, Model, HasManyOptions, HasOneOptions } from 'sequelize';
 
 export default class WalletClass {
   private model: ModelStatic<Model<any>>;
@@ -14,16 +14,8 @@ export default class WalletClass {
     return Promise.resolve(this.model.create(body));
   }
 
-  findWallet(address: string): Promise<Model<any> | null> {
-    return Promise.resolve(
-      this.model.findOne({
-        where: {
-          address: {
-            [Op.iLike]: address
-          }
-        }
-      })
-    );
+  findWallets(): Promise<Array<Model<any>>> {
+    return Promise.resolve(this.model.findAll());
   }
 
   // getModel(): ModelStatic<Model<any>> {
@@ -32,5 +24,9 @@ export default class WalletClass {
 
   hasMany(model: ModelStatic<Model<any>>, opts?: HasManyOptions) {
     return this.model.hasMany(model, opts);
+  }
+
+  hasOne(model: ModelStatic<Model<any>>, opts?: HasOneOptions) {
+    return this.model.hasOne(model, opts);
   }
 }

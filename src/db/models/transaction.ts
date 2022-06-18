@@ -14,7 +14,8 @@ export default class TransactionClass {
       isERC20LikeSpec: { type: DataTypes.BOOLEAN, defaultValue: false },
       tokenName: DataTypes.STRING,
       txId: { type: DataTypes.STRING, allowNull: false },
-      explorerUrl: { type: DataTypes.STRING, allowNull: false }
+      explorerUrl: { type: DataTypes.STRING, allowNull: false },
+      walletId: { type: DataTypes.INTEGER, allowNull: false }
     });
   }
 
@@ -24,5 +25,9 @@ export default class TransactionClass {
 
   getAllTransactions(): Promise<Array<Model<any>>> {
     return Promise.resolve(this.model.findAll());
+  }
+
+  getModel(): ModelStatic<Model<any>> {
+    return this.model;
   }
 }
