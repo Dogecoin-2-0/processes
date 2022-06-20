@@ -3,6 +3,7 @@
     "id": 1,
     "name": "Ethereum",
     "rpcUrl": "https://main-rpc.linkpool.io",
-    "symbol": "ETH"
+    "symbol": "ETH",
+    "txExplorerUrl": "https://etherscan.io/tx/:hash"
   }
 ]
