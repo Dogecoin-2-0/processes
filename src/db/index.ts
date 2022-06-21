@@ -6,6 +6,9 @@ export const sequelize = new Sequelize(DB_URI as string, {
   dialect: 'postgres',
   define: {
     underscored: true
+  },
+  sync: {
+    force: false
   }
 });
 

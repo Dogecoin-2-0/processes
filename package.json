@@ -7,8 +7,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "format": "prettier --write **/**/*.{ts,json}",
     "nodemon": "nodemon src/index",
-    "dev": "cross-env CHAIN_ENV=testnet DEBUG=app node src/index",
-    "start": "cross-env CHAIN_ENV=mainnet DEBUG=app node src/index"
+    "dev": "cross-env DEBUG=app ts-node src/index",
+    "start": "cross-env DEBUG=app node build/index",
+    "build": "tsc"
   },
   "repository": {
     "type": "git",
@@ -46,6 +47,7 @@
     "@types/express": "^4.17.13",
     "@types/node": "^18.0.0",
     "@types/ramda": "^0.28.14",
+    "ts-node": "^10.8.1",
     "typescript": "^4.7.3"
   }
 }
