@@ -68,11 +68,47 @@ router.get('/transactions/:id', async (req, res) => {
   }
 });
 
+router
+  .route('/push')
+  .post(async (req, res) => {
+    try {
+      const { body } = pick(['body'], req);
+      const allSubscriptions = await db.models.subscription.getSubscriptions();
+      const allSubscriptionsJson = map(sub => sub.toJSON(), allSubscriptions);
+      const exactSub = allSubscriptionsJson.find(sub => sub.walletId === body.walletId);
+
+      if (typeof exactSub !== 'undefined') {
+        await db.models.subscription.updateSubscription(
+          { deviceId: body.deviceId },
+          { where: { walletId: body.walletId } }
+        );
+        return res.status(200).json({ result: exactSub });
+      }
+
+      let result = await db.models.subscription.addSubscription({ deviceId: body.deviceId, walletId: body.walletId });
+      result = result.toJSON();
+
+      return res.status(201).json({ result });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  })
+  .delete(async (req, res) => {
+    try {
+      const { walletId } = req.body;
+      await db.models.subscription.deleteSubscription({ where: { walletId } });
+
+      return res.status(200).json({ result: 'DONE!' });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
 app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Authorization, Content-Type');
-  res.header('Access-Control-Allow-Methods', 'POST, DELETE');
+  res.header('Access-Control-Allow-Methods', 'POST, DELETE, GET');
   next();
 });
 app.use('/', router);
