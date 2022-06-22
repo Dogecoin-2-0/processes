@@ -11,6 +11,8 @@ import { TransactionSchema } from '../objects/schemas';
 import * as db from '../db';
 import log from '../log';
 import { redisLastProcessedBlockKey } from '../constants';
+import { IOS_BUNDLE_ID } from '../env';
+import push from '../objects/push';
 
 export function propagateBlockData(blockNumber: number, chainId: number) {
   return async () => {
@@ -70,8 +72,24 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                   explorerUrl: chain.txExplorerUrl.replace(':hash', hash),
                   walletId: matchingWallet.id
                 });
-
+                // Log stored transaction information
                 log('New transaction stored: %s', JSON.stringify(tx, undefined, 2));
+
+                if (getAddress(to) === getAddress(matchingWallet.address)) {
+                  // Find push subscription
+                  const allSubscriptions = await db.models.subscription.getSubscriptions();
+                  const allSubscriptionsJson = map(sub => sub.toJSON(), allSubscriptions);
+                  const exactSub = allSubscriptionsJson.find(sub => sub.walletId === matchingWallet.id);
+
+                  if (typeof exactSub !== 'undefined') {
+                    const pushResult = await push.send(exactSub.deviceId, {
+                      title: 'New Deposit',
+                      body: `${valueInEther} ${chain.symbol} deposited in your wallet.`,
+                      topic: IOS_BUNDLE_ID
+                    });
+                    log('Push notification sent with result: %s', JSON.stringify(pushResult, undefined, 2));
+                  }
+                }
               }
             } else {
               log('Now calling eth_getLogs');
@@ -110,8 +128,16 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                     const tokenNameHash = abiInterface.getSighash('name()');
                     const tokenName = await rpcCall(chain.rpcUrl, {
                       method: 'eth_call',
-                      params: [{ to, data: tokenNameHash }]
+                      params: [{ to, data: tokenNameHash }, 'latest']
                     });
+
+                    const symbolHash = abiInterface.getSighash('symbol()');
+                    let symbol = await rpcCall(chain.rpcUrl, {
+                      method: 'eth_call',
+                      params: [{ to, data: symbolHash }, 'latest']
+                    });
+
+                    symbol = symbol.startsWith('0x') ? Buffer.from(symbol, 'hex').toString() : symbol;
 
                     const tx = await db.models.transaction.addTransaction({
                       from: sender,
@@ -127,6 +153,22 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                     });
 
                     log('New transaction stored: %s', JSON.stringify(tx, undefined, 2));
+
+                    if (getAddress(recipient) === getAddress(matchingWallet.address)) {
+                      // Find push subscription
+                      const allSubscriptions = await db.models.subscription.getSubscriptions();
+                      const allSubscriptionsJson = map(sub => sub.toJSON(), allSubscriptions);
+                      const exactSub = allSubscriptionsJson.find(sub => sub.walletId === matchingWallet.id);
+
+                      if (typeof exactSub !== 'undefined') {
+                        const pushResult = await push.send(exactSub.deviceId, {
+                          title: 'New Deposit',
+                          body: `${valueInTokenUnits} ${symbol} deposited in your wallet.`,
+                          topic: IOS_BUNDLE_ID
+                        });
+                        log('Push notification sent with result: %s', JSON.stringify(pushResult, undefined, 2));
+                      }
+                    }
                   }
                 }
               }
