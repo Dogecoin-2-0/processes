@@ -9,7 +9,7 @@
     "nodemon": "nodemon src/index",
     "dev": "cross-env DEBUG=app ts-node src/index",
     "start": "cross-env DEBUG=app node build/index",
-    "build": "tsc"
+    "build": "rm -rf build && tsc"
   },
   "repository": {
     "type": "git",

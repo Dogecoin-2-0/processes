@@ -1,6 +1,6 @@
 import express from 'express';
 import { getAddress } from '@ethersproject/address';
-import { forEach, find, map, pick } from 'ramda';
+import { forEach, find, map, pick, filter } from 'ramda';
 import * as db from './db';
 import CustomError from './custom/error';
 import _redis from './helpers/redis';
@@ -9,7 +9,7 @@ import { buildProvider } from './utils/provider';
 import { propagateBlockData, syncFromLastProcessedBlock } from './handlers';
 import log from './log';
 
-const app = express();
+const app: express.Express = express();
 const router = express.Router();
 const port = parseInt(process.env.PORT || '3600');
 
@@ -36,6 +36,33 @@ router.post('/wallet', async (req, res) => {
     result = await db.models.wallet.addWallet({ address: body.address });
     result = result.toJSON();
     return res.status(201).json({ result });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/wallet/:id', async (req, res) => {
+  try {
+    const { params } = pick(['params'], req);
+    const allWallets = await db.models.wallet.findWallets();
+    const allWalletsJson = map(wallet => wallet.toJSON(), allWallets);
+    const result = allWalletsJson.find(wallet => wallet.id === parseInt(params.id));
+
+    if (typeof result === 'undefined') throw new CustomError(404, 'Wallet not found');
+
+    return res.status(200).json({ result });
+  } catch (err: any) {
+    return res.status(err.errorCode || 500).json({ error: err.message });
+  }
+});
+
+router.get('/transactions/:id', async (req, res) => {
+  try {
+    const { params } = pick(['params'], req);
+    const allTx = await db.models.transaction.getAllTransactions();
+    const allTxJson = map(tx => tx.toJSON(), allTx);
+    const result = filter(tx => tx.walletId === parseInt(params.id), allTxJson);
+    return res.status(200).json({ result });
   } catch (err: any) {
     return res.status(500).json({ error: err.message });
   }
