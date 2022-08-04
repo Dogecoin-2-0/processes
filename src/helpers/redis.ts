@@ -1,6 +1,8 @@
-const { createClient } = require('redis');
+import { createClient } from 'redis';
+import log from '../log';
 
 class RedisStore {
+  private client: ReturnType<typeof createClient>;
   constructor() {
     this.client = createClient();
     // this._initConnection = this._initConnection.bind(this);
@@ -12,7 +14,7 @@ class RedisStore {
   }
 
   async _initConnection() {
-    this.client.on('error', console.log);
+    this.client.on('error', log);
     await this.client.connect();
   }
 
@@ -24,7 +26,7 @@ class RedisStore {
    * @param {number} expiresIn
    * @returns {Promise<number>}
    */
-  setObjectVal(key, field, value, expiresIn = 0) {
+  setObjectVal(key: string, field: string, value: any, expiresIn: number = 0): Promise<number> {
     return new Promise((resolve, reject) => {
       this.client
         .hSet(key, field, JSON.stringify(value))
@@ -44,7 +46,7 @@ class RedisStore {
    * @param {number} expiresIn
    * @returns {Promise<string>}
    */
-  simpleSet(key, value, expiresIn = 0) {
+  simpleSet(key: string, value: string | number, expiresIn: number = 0): Promise<string | null> {
     return new Promise((resolve, reject) => {
       this.client
         .set(key, typeof value === 'number' ? value.toString() : value)
@@ -62,7 +64,7 @@ class RedisStore {
    * @param {string} key
    * @returns {Promise<{ [x:string]: string }>}
    */
-  getVal(key) {
+  getVal(key: string): Promise<{ [x: string]: string }> {
     return this.client.hGetAll(key);
   }
 
@@ -71,7 +73,7 @@ class RedisStore {
    * @param {string} key
    * @returns {Promise<string>}
    */
-  simpleGet(key) {
+  simpleGet(key: string): Promise<string | null> {
     return this.client.get(key);
   }
 
@@ -80,7 +82,7 @@ class RedisStore {
    * @param {string} key
    * @returns {Promise<boolean>}
    */
-  exists(key) {
+  exists(key: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       this.client
         .exists(key)
@@ -93,4 +95,4 @@ class RedisStore {
   }
 }
 
-module.exports = new RedisStore();
+export default new RedisStore();
