@@ -1,24 +1,35 @@
 import express from 'express';
 import { getAddress } from '@ethersproject/address';
+import { id as hashId } from '@ethersproject/hash';
 import { forEach, find, map, pick, filter } from 'ramda';
 import * as db from './db';
 import CustomError from './custom/error';
 import _redis from './helpers/redis';
 import chainlist from './chainlist.json';
 import { buildProvider } from './utils/provider';
-import { propagateBlockData, syncFromLastProcessedBlock } from './handlers';
+import { propagateBlockData, syncFromLastProcessedBlock, propagateLockedTxCreated } from './handlers';
 import log from './log';
+import { timelockTxContract } from './constants';
 
 const app: express.Express = express();
 const router = express.Router();
 const port = parseInt(process.env.PORT || '3600');
 
-function watchBlocks() {
+// Hashes of events emitted on the timelock contract
+const timelockObjectCreatedEvent = hashId(
+  'TimelockObjectCreated(bytes32,uint256,address,address,address,uint256,uint256)'
+);
+
+function watchEvents() {
   forEach(chain => {
     const provider = buildProvider(chain.rpcUrl, chain.id);
     syncFromLastProcessedBlock(chain.id);
 
     provider.on('block', (blockNumber: number) => propagateBlockData(blockNumber, chain.id)());
+    provider.on(
+      { address: timelockTxContract[chain.id], topics: [timelockObjectCreatedEvent] },
+      propagateLockedTxCreated(chain.id)
+    );
   }, chainlist);
 }
 
@@ -118,7 +129,7 @@ app.listen(port, () => {
   db.sequelize.sync({}).then(() => {
     log('Sequelize connected to DB');
     _redis._initConnection().then(() => {
-      watchBlocks();
+      watchEvents();
     });
   });
 });
