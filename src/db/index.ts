@@ -22,3 +22,7 @@ models.wallet.hasOne(models.subscription.getModel(), {
   sourceKey: 'id',
   foreignKey: 'walletId'
 });
+models.wallet.hasMany(models.lockedTransaction.getModel(), {
+  sourceKey: 'id',
+  foreignKey: 'walletId'
+});

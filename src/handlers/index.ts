@@ -2,17 +2,21 @@ import { Interface } from '@ethersproject/abi';
 import { getAddress } from '@ethersproject/address';
 import { hexValue } from '@ethersproject/bytes';
 import { formatEther, formatUnits } from '@ethersproject/units';
+import { AddressZero } from '@ethersproject/constants';
 import { find, forEach, map, any as anyMatch, multiply } from 'ramda';
 import redis from '../helpers/redis';
 import rpcCall from '../utils/rpc';
 import chainlist from '../chainlist.json';
 import erc20Abi from '../assets/ERC20ABI.json';
+import timelockAbi from '../assets/TimelockABI.json';
 import { TransactionSchema } from '../objects/schemas';
 import * as db from '../db';
 import log from '../log';
 import { redisLastProcessedBlockKey } from '../constants';
 import { IOS_BUNDLE_ID } from '../env';
 import push from '../objects/push';
+
+const timelockAbiInterface = new Interface(timelockAbi);
 
 export function propagateBlockData(blockNumber: number, chainId: number) {
   return async () => {
@@ -224,4 +228,55 @@ export function syncFromLastProcessedBlock(chainId: number) {
       log(err.message);
     }
   })();
+}
+
+export function propagateLockedTxCreated(chainId: number) {
+  return async function (log: any) {
+    try {
+      const chain = find(c => c.id === chainId, chainlist);
+
+      if (!chain) throw new Error('invalid chain');
+      let {
+        args: [id, amount, from, to, token, lockTime, fee]
+      } = timelockAbiInterface.parseLog(log);
+
+      if (token === AddressZero) {
+        amount = parseFloat(formatEther(amount));
+        fee = parseFloat(formatEther(fee));
+      } else {
+        const abiInterface = new Interface(erc20Abi);
+        const data = abiInterface.getSighash('decimals()');
+        const callValue = await rpcCall(chain.rpcUrl, {
+          method: 'eth_call',
+          params: [{ to: token, data }, 'latest']
+        });
+        amount = parseFloat(formatUnits(amount, callValue));
+        fee = parseFloat(formatUnits(fee, callValue));
+      }
+
+      lockTime = multiply(lockTime, 1000);
+
+      const wallets = await db.models.wallet.findWallets();
+      const walletsJson = map(wallet => wallet.toJSON(), wallets);
+      const walletExists = anyMatch(wallet => getAddress(wallet.address) === getAddress(from), walletsJson);
+
+      if (walletExists) {
+        const { id: walletId } = find(wallet => getAddress(wallet.address) === getAddress(from), walletsJson);
+        const tx = await db.models.lockedTransaction.addTransaction({
+          from,
+          to,
+          lockTime,
+          token,
+          amount,
+          chainId: hexValue(chainId),
+          fee,
+          id,
+          walletId
+        });
+        log('Now adding locked tx %s', JSON.stringify(tx.toJSON(), undefined, 2));
+      }
+    } catch (err: any) {
+      log(err.message);
+    }
+  };
 }
