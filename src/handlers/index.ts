@@ -74,7 +74,8 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                   tokenName: chain.name,
                   txId: hash,
                   explorerUrl: chain.txExplorerUrl.replace(':hash', hash),
-                  walletId: matchingWallet.id
+                  walletId: matchingWallet.id,
+                  tokenAddress: AddressZero
                 });
                 // Log stored transaction information
                 log('New transaction stored: %s', JSON.stringify(tx, undefined, 2));
@@ -130,10 +131,11 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                     const valueInTokenUnits = parseFloat(amount);
 
                     const tokenNameHash = abiInterface.getSighash('name()');
-                    const tokenName = await rpcCall(chain.rpcUrl, {
+                    let tokenName = await rpcCall(chain.rpcUrl, {
                       method: 'eth_call',
                       params: [{ to, data: tokenNameHash }, 'latest']
                     });
+                    [tokenName] = abiInterface.decodeFunctionResult('name()', tokenName);
 
                     const symbolHash = abiInterface.getSighash('symbol()');
                     let symbol = await rpcCall(chain.rpcUrl, {
@@ -153,7 +155,8 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                       tokenName,
                       txId: hash,
                       explorerUrl: chain.txExplorerUrl.replace(':hash', hash),
-                      walletId: matchingWallet.id
+                      walletId: matchingWallet.id,
+                      tokenAddress: to
                     });
 
                     log('New transaction stored: %s', JSON.stringify(tx, undefined, 2));
@@ -231,14 +234,14 @@ export function syncFromLastProcessedBlock(chainId: number) {
 }
 
 export function propagateLockedTxCreated(chainId: number) {
-  return async function (log: any) {
+  return async function (logs: any) {
     try {
       const chain = find(c => c.id === chainId, chainlist);
 
       if (!chain) throw new Error('invalid chain');
       let {
         args: [id, amount, from, to, token, lockTime, fee]
-      } = timelockAbiInterface.parseLog(log);
+      } = timelockAbiInterface.parseLog(logs);
 
       if (token === AddressZero) {
         amount = parseFloat(formatEther(amount));
@@ -275,6 +278,40 @@ export function propagateLockedTxCreated(chainId: number) {
         });
         log('Now adding locked tx %s', JSON.stringify(tx.toJSON(), undefined, 2));
       }
+    } catch (err: any) {
+      log(err.message);
+    }
+  };
+}
+
+export function propagateTimelockProcessedEvent(chainId: number) {
+  return async function (logs: any) {
+    try {
+      const chain = find(c => c.id === chainId, chainlist);
+
+      if (!chain) throw new Error('invalid chain');
+      let {
+        args: [id]
+      } = timelockAbiInterface.parseLog(logs);
+
+      await db.models.lockedTransaction.deleteTransaction(id);
+    } catch (err: any) {
+      log(err.message);
+    }
+  };
+}
+
+export function propagateTimelockCancelledEvent(chainId: number) {
+  return async function (logs: any) {
+    try {
+      const chain = find(c => c.id === chainId, chainlist);
+
+      if (!chain) throw new Error('invalid chain');
+      let {
+        args: [id]
+      } = timelockAbiInterface.parseLog(logs);
+
+      await db.models.lockedTransaction.deleteTransaction(id);
     } catch (err: any) {
       log(err.message);
     }

@@ -10,7 +10,7 @@ export default class LockedTransactionClass {
       to: { type: DataTypes.STRING, allowNull: false },
       amount: { type: DataTypes.DOUBLE, allowNull: false },
       fee: { type: DataTypes.DOUBLE, allowNull: false },
-      lockTime: { type: DataTypes.INTEGER, allowNull: false },
+      lockTime: { type: DataTypes.BIGINT, allowNull: false },
       token: { type: DataTypes.STRING, allowNull: false },
       walletId: { type: DataTypes.INTEGER, allowNull: false },
       chainId: { type: DataTypes.STRING, allowNull: false }
@@ -23,6 +23,10 @@ export default class LockedTransactionClass {
 
   getAllTransactions(): Promise<Array<Model<any>>> {
     return Promise.resolve(this.model.findAll());
+  }
+
+  deleteTransaction(id: string): Promise<number> {
+    return Promise.resolve(this.model.destroy({ where: { id } }));
   }
 
   getModel(): ModelStatic<Model<any>> {

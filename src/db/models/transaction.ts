@@ -9,10 +9,11 @@ export default class TransactionClass {
       from: { type: DataTypes.STRING, allowNull: false },
       to: { type: DataTypes.STRING, allowNull: false },
       amount: { type: DataTypes.DOUBLE, allowNull: false },
-      timeStamp: { type: DataTypes.INTEGER, allowNull: false },
+      timeStamp: { type: DataTypes.BIGINT, allowNull: false },
       chainIdHex: { type: DataTypes.STRING, allowNull: false },
       isERC20LikeSpec: { type: DataTypes.BOOLEAN, defaultValue: false },
       tokenName: DataTypes.STRING,
+      tokenAddress: DataTypes.STRING,
       txId: { type: DataTypes.STRING, allowNull: false },
       explorerUrl: { type: DataTypes.STRING, allowNull: false },
       walletId: { type: DataTypes.INTEGER, allowNull: false }
