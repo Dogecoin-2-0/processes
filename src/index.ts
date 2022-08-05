@@ -7,7 +7,13 @@ import CustomError from './custom/error';
 import _redis from './helpers/redis';
 import chainlist from './chainlist.json';
 import { buildProvider } from './utils/provider';
-import { propagateBlockData, syncFromLastProcessedBlock, propagateLockedTxCreated } from './handlers';
+import {
+  propagateBlockData,
+  syncFromLastProcessedBlock,
+  propagateLockedTxCreated,
+  propagateTimelockCancelledEvent,
+  propagateTimelockProcessedEvent
+} from './handlers';
 import log from './log';
 import { timelockTxContract } from './constants';
 
@@ -19,6 +25,8 @@ const port = parseInt(process.env.PORT || '3600');
 const timelockObjectCreatedEvent = hashId(
   'TimelockObjectCreated(bytes32,uint256,address,address,address,uint256,uint256)'
 );
+const timelockProcessedEvent = hashId('TimelockProcessed(bytes32)');
+const timelockCancelledEvent = hashId('TimelockCancelled(bytes32)');
 
 function watchEvents() {
   forEach(chain => {
@@ -26,10 +34,13 @@ function watchEvents() {
     syncFromLastProcessedBlock(chain.id);
 
     provider.on('block', (blockNumber: number) => propagateBlockData(blockNumber, chain.id)());
-    provider.on(
-      { address: timelockTxContract[chain.id], topics: [timelockObjectCreatedEvent] },
-      propagateLockedTxCreated(chain.id)
-    );
+
+    if (!!timelockTxContract[chain.id]) {
+      const address = timelockTxContract[chain.id];
+      provider.on({ address, topics: [timelockObjectCreatedEvent] }, propagateLockedTxCreated(chain.id));
+      provider.on({ address, topics: [timelockProcessedEvent] }, propagateTimelockProcessedEvent(chain.id));
+      provider.on({ address, topics: [timelockCancelledEvent] }, propagateTimelockCancelledEvent(chain.id));
+    }
   }, chainlist);
 }
 
@@ -71,6 +82,18 @@ router.get('/transactions/:id', async (req, res) => {
   try {
     const { params } = pick(['params'], req);
     const allTx = await db.models.transaction.getAllTransactions();
+    const allTxJson = map(tx => tx.toJSON(), allTx);
+    const result = filter(tx => tx.walletId === parseInt(params.id), allTxJson);
+    return res.status(200).json({ result });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/locked_transactions/:id', async (req, res) => {
+  try {
+    const { params } = pick(['params'], req);
+    const allTx = await db.models.lockedTransaction.getAllTransactions();
     const allTxJson = map(tx => tx.toJSON(), allTx);
     const result = filter(tx => tx.walletId === parseInt(params.id), allTxJson);
     return res.status(200).json({ result });
