@@ -15,7 +15,8 @@ import {
   propagateTimelockProcessedEvent
 } from './handlers';
 import log from './log';
-import { timelockTxContract } from './constants';
+import { redisPriceKey, timelockTxContract } from './constants';
+import { fetchTokenPrices, watchPriceChangeHourly } from './cron';
 
 const app: express.Express = express();
 const router = express.Router();
@@ -138,6 +139,20 @@ router
     }
   });
 
+router.get('/prices', async (req, res) => {
+  try {
+    const result = await _redis.getVal(redisPriceKey);
+
+    Object.keys(result).forEach(key => {
+      result[key] = JSON.parse(result[key]);
+    });
+
+    return res.status(200).json({ result });
+  } catch (err: any) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
 app.use(express.json());
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -153,6 +168,9 @@ app.listen(port, () => {
     log('Sequelize connected to DB');
     _redis._initConnection().then(() => {
       watchEvents();
+      fetchTokenPrices().then(() => {
+        watchPriceChangeHourly();
+      });
     });
   });
 });
