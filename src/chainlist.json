@@ -9,7 +9,7 @@
   {
     "id": 97,
     "name": "Binance Smartchain",
-    "rpcUrl": "https://data-seed-prebsc-1-s3.binance.org:8545",
+    "rpcUrl": "https://bsctestapi.terminet.io/rpc",
     "symbol": "BNB",
     "txExplorerUrl": "https://testnet.bscscan.com/tx/:hash"
   },
