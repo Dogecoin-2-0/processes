@@ -45,6 +45,13 @@ function watchEvents() {
   }, chainlist);
 }
 
+router.get('/health', async (req, res) => {
+  return res.status(200).json({
+    status: 'healthy',
+    url: req.url
+  });
+});
+
 router.post('/wallet', async (req, res) => {
   try {
     const { body } = pick(['body'], req);
