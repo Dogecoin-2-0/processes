@@ -23,7 +23,7 @@
   {
     "id": 80001,
     "name": "Polygon",
-    "rpcUrl": "https://matic-mumbai.chainstacklabs.com",
+    "rpcUrl": "https://polygontestapi.terminet.io/rpc",
     "symbol": "MATIC",
     "txExplorerUrl": "https://mumbai.polygonscan.com/tx/:hash"
   }
