@@ -9,14 +9,14 @@
   {
     "id": 97,
     "name": "Binance Smartchain",
-    "rpcUrl": "https://bsctestapi.terminet.io/rpc",
+    "rpcUrl": "https://data-seed-prebsc-2-s3.binance.org:8545",
     "symbol": "BNB",
     "txExplorerUrl": "https://testnet.bscscan.com/tx/:hash"
   },
   {
     "id": 43113,
     "name": "Avalanche C-Chain",
-    "rpcUrl": "https://rpc.ankr.com/avalanche_fuji",
+    "rpcUrl": "https://avalanchetestapi.terminet.io/ext/bc/C/rpc",
     "symbol": "AVAX",
     "txExplorerUrl": "https://testnet.snowtrace.io/tx/:hash"
   },
