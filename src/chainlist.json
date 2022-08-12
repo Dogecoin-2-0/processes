@@ -16,14 +16,14 @@
   {
     "id": 43113,
     "name": "Avalanche C-Chain",
-    "rpcUrl": "https://avalanchetestapi.terminet.io/ext/bc/C/rpc",
+    "rpcUrl": "https://api.avax-test.network/ext/bc/C/rpc",
     "symbol": "AVAX",
     "txExplorerUrl": "https://testnet.snowtrace.io/tx/:hash"
   },
   {
     "id": 80001,
     "name": "Polygon",
-    "rpcUrl": "https://polygontestapi.terminet.io/rpc",
+    "rpcUrl": "https://matic-mumbai.chainstacklabs.com",
     "symbol": "MATIC",
     "txExplorerUrl": "https://mumbai.polygonscan.com/tx/:hash"
   }
