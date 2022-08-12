@@ -29,6 +29,7 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
 
       log('Now reading block %s on chain %s', blockNumberAsHex, hexValue(chainId));
 
+      setTimeout(() => {}, 30 * 1000);
       const blockResult: { transactions: Array<TransactionSchema>; timestamp: string } = await rpcCall(chain.rpcUrl, {
         method: 'eth_getBlockByNumber',
         params: [blockNumberAsHex, true]
@@ -43,6 +44,7 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
           const abiInterface = new Interface(erc20Abi);
           const data = abiInterface.getSighash('decimals()');
           try {
+            setTimeout(() => {}, 30 * 1000);
             const callValue = await rpcCall(chain.rpcUrl, {
               method: 'eth_call',
               params: [{ to, data }, 'latest']
@@ -99,6 +101,7 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
             } else {
               log('Now calling eth_getLogs');
 
+              setTimeout(() => {}, 30 * 1000);
               const logs = await rpcCall(chain.rpcUrl, {
                 method: 'eth_getLogs',
                 params: [{ fromBlock: blockNumberAsHex, toBlock: blockNumberAsHex, address: to }]
@@ -131,6 +134,8 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                     const valueInTokenUnits = parseFloat(amount);
 
                     const tokenNameHash = abiInterface.getSighash('name()');
+
+                    setTimeout(() => {}, 30 * 1000);
                     let tokenName = await rpcCall(chain.rpcUrl, {
                       method: 'eth_call',
                       params: [{ to, data: tokenNameHash }, 'latest']
@@ -138,6 +143,8 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                     [tokenName] = abiInterface.decodeFunctionResult('name()', tokenName);
 
                     const symbolHash = abiInterface.getSighash('symbol()');
+
+                    setTimeout(() => {}, 30 * 1000);
                     let symbol = await rpcCall(chain.rpcUrl, {
                       method: 'eth_call',
                       params: [{ to, data: symbolHash }, 'latest']
@@ -215,6 +222,7 @@ export function syncFromLastProcessedBlock(chainId: number) {
 
         if (!chain) throw new Error('invalid chain');
 
+        setTimeout(() => {}, 30 * 1000);
         let currentBlock = await rpcCall(chain.rpcUrl, {
           method: 'eth_blockNumber',
           params: []
@@ -249,6 +257,8 @@ export function propagateLockedTxCreated(chainId: number) {
       } else {
         const abiInterface = new Interface(erc20Abi);
         const data = abiInterface.getSighash('decimals()');
+
+        setTimeout(() => {}, 30 * 1000);
         const callValue = await rpcCall(chain.rpcUrl, {
           method: 'eth_call',
           params: [{ to: token, data }, 'latest']
