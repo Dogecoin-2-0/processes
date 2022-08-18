@@ -1,30 +1,30 @@
 [
   {
-    "id": 3,
+    "id": 1,
     "name": "Ethereum",
-    "rpcUrl": "https://rpc.ankr.com/eth_ropsten",
+    "rpcUrl": "https://eth-mainnet.nodereal.io/v1/1659dfb40aa24bbb8153a677b98064d7",
     "symbol": "ETH",
-    "txExplorerUrl": "https://ropsten.etherscan.io/tx/:hash"
+    "txExplorerUrl": "https://etherscan.io/tx/:hash"
   },
   {
-    "id": 97,
+    "id": 56,
     "name": "Binance Smartchain",
-    "rpcUrl": "https://data-seed-prebsc-2-s3.binance.org:8545",
+    "rpcUrl": "https://bsc-mainnet.nodereal.io/v1/64a9df0874fb4a93b9d0a3849de012d3",
     "symbol": "BNB",
-    "txExplorerUrl": "https://testnet.bscscan.com/tx/:hash"
+    "txExplorerUrl": "https://bscscan.com/tx/:hash"
   },
   {
-    "id": 43113,
+    "id": 43114,
     "name": "Avalanche C-Chain",
-    "rpcUrl": "https://api.avax-test.network/ext/bc/C/rpc",
+    "rpcUrl": "https://rpc.ankr.com/avalanche",
     "symbol": "AVAX",
-    "txExplorerUrl": "https://testnet.snowtrace.io/tx/:hash"
+    "txExplorerUrl": "https://snowtrace.io/tx/:hash"
   },
   {
-    "id": 80001,
+    "id": 137,
     "name": "Polygon",
-    "rpcUrl": "https://matic-mumbai.chainstacklabs.com",
+    "rpcUrl": "https://rpc-mainnet.matic.quiknode.pro",
     "symbol": "MATIC",
-    "txExplorerUrl": "https://mumbai.polygonscan.com/tx/:hash"
+    "txExplorerUrl": "https://polygonscan.com/tx/:hash"
   }
 ]
