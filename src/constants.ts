@@ -1,8 +1,8 @@
-export const redisLastProcessedBlockKey = 'doge2:wallet:last_processed_block_:chainIdHex:';
+export const redisLastProcessedBlockKey = 'doge2:wallet:mainnet:last_processed_block_:chainIdHex:';
 export const redisPriceKey = 'doge2:wallet:pricing';
 export const timelockTxContract: { [key: number]: string } = {
-  97: '0x6278a3564d748e4c7308c5e3a69301eb7c26d3b4',
-  3: '0x122Ee522cD0aC0bc6c67e8C99b6153D6c898dafd',
-  43113: '0x9CdC35e63C79c0e83f656929aD52CC9fc02EA3B4',
-  80001: '0x7Ff2dc014305A0E0bb629b7C7ac96bA7eA5332b3'
+  56: '0x1853acb5d771cBfAd3db55C65385F03F2471d9aC',
+  1: '0x7cA0Af2CBdD6bBBf288b47BdD8ef834A39588074',
+  43114: '0x7cA0Af2CBdD6bBBf288b47BdD8ef834A39588074',
+  137: '0x18e3aaa26d0472DC9136C88524437861B72671Dd'
 };
