@@ -2,28 +2,28 @@
   {
     "id": 1,
     "name": "Ethereum",
-    "rpcUrl": "https://eth-mainnet.alchemyapi.io/v2/QKMdAyFAARxN-dEm_USOu8-u0klcBuTO",
+    "rpcUrl": "https://eth-mainnet.gateway.pokt.network/v1/5f3453978e354ab992c4da79",
     "symbol": "ETH",
     "txExplorerUrl": "https://etherscan.io/tx/:hash"
   },
   {
     "id": 56,
     "name": "Binance Smartchain",
-    "rpcUrl": "https://bsc-dataseed3.binance.org",
+    "rpcUrl": "https://bscrpc.com",
     "symbol": "BNB",
     "txExplorerUrl": "https://bscscan.com/tx/:hash"
   },
   {
     "id": 43114,
     "name": "Avalanche C-Chain",
-    "rpcUrl": "https://avalancheapi.terminet.io/ext/bc/C/rpc",
+    "rpcUrl": "https://avalanche-mainnet-rpc.allthatnode.com/ext/bc/C/rpc",
     "symbol": "AVAX",
     "txExplorerUrl": "https://snowtrace.io/tx/:hash"
   },
   {
     "id": 137,
     "name": "Polygon",
-    "rpcUrl": "https://matic-mainnet.chainstacklabs.com",
+    "rpcUrl": "https://polygon-mainnet-rpc.allthatnode.com:8545",
     "symbol": "MATIC",
     "txExplorerUrl": "https://polygonscan.com/tx/:hash"
   }
