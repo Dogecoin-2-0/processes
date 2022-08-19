@@ -2,7 +2,7 @@
   {
     "id": 1,
     "name": "Ethereum",
-    "rpcUrl": "https://cloudflare-eth.com",
+    "rpcUrl": "https://eth-mainnet.alchemyapi.io/v2/QKMdAyFAARxN-dEm_USOu8-u0klcBuTO",
     "symbol": "ETH",
     "txExplorerUrl": "https://etherscan.io/tx/:hash"
   },
