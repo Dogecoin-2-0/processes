@@ -39,36 +39,35 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
         params: [blockNumberAsHex, true]
       });
 
-      forEach(transaction => {
+      forEach(async transaction => {
         const { from, to, value, hash } = transaction;
 
         log('Now reading transaction: ', hash);
+
+        const allWallets = await db.models.wallet.findWallets();
+        const allWalletsJson = map(walletModel => walletModel.toJSON(), allWallets);
+        const walletExists = anyMatch(
+          wallet => getAddress(wallet.address) === getAddress(from) || getAddress(wallet.address) === getAddress(to),
+          allWalletsJson
+        );
 
         (async () => {
           const abiInterface = new Interface(erc20Abi);
           const data = abiInterface.getSighash('decimals()');
           try {
-            await sleep(120);
-            const callValue = await rpcCall(chain.rpcUrl, {
-              method: 'eth_call',
-              params: [{ to, data }, 'latest']
-            });
-
-            if (callValue === '0x' || callValue === '0x0') {
-              const allWallets = await db.models.wallet.findWallets();
-              const allWalletsJson = map(walletModel => walletModel.toJSON(), allWallets);
-              const walletExists = anyMatch(
+            if (walletExists) {
+              const matchingWallet = find(
                 wallet =>
                   getAddress(wallet.address) === getAddress(from) || getAddress(wallet.address) === getAddress(to),
                 allWalletsJson
               );
+              await sleep(120);
+              const callValue = await rpcCall(chain.rpcUrl, {
+                method: 'eth_call',
+                params: [{ to, data }, 'latest']
+              });
 
-              if (walletExists) {
-                const matchingWallet = find(
-                  wallet =>
-                    getAddress(wallet.address) === getAddress(from) || getAddress(wallet.address) === getAddress(to),
-                  allWalletsJson
-                );
+              if (callValue === '0x' || callValue === '0x0') {
                 const valueInEther = parseFloat(formatEther(value));
                 const tx = await db.models.transaction.addTransaction({
                   from,
@@ -101,90 +100,90 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                     log('Push notification sent with result: %s', JSON.stringify(pushResult, undefined, 2));
                   }
                 }
-              }
-            } else {
-              log('Now calling eth_getLogs');
+              } else {
+                log('Now calling eth_getLogs');
 
-              await sleep(120);
-              const logs = await rpcCall(chain.rpcUrl, {
-                method: 'eth_getLogs',
-                params: [{ fromBlock: blockNumberAsHex, toBlock: blockNumberAsHex, address: to }]
-              });
+                await sleep(120);
+                const logs = await rpcCall(chain.rpcUrl, {
+                  method: 'eth_getLogs',
+                  params: [{ fromBlock: blockNumberAsHex, toBlock: blockNumberAsHex, address: to }]
+                });
 
-              for (const l of logs) {
-                const { args, name } = abiInterface.parseLog(l);
+                for (const l of logs) {
+                  const { args, name } = abiInterface.parseLog(l);
 
-                if (name === 'Transfer') {
-                  const sender = args[0];
-                  const recipient = args[1];
-                  const amount = formatUnits(args[2], callValue);
+                  if (name === 'Transfer') {
+                    const sender = args[0];
+                    const recipient = args[1];
+                    const amount = formatUnits(args[2], callValue);
 
-                  const allWallets = await db.models.wallet.findWallets();
-                  const allWalletsJson = map(walletModel => walletModel.toJSON(), allWallets);
-                  const walletExists = anyMatch(
-                    wallet =>
-                      getAddress(wallet.address) === getAddress(sender) ||
-                      getAddress(wallet.address) === getAddress(recipient),
-                    allWalletsJson
-                  );
-
-                  if (walletExists) {
-                    const matchingWallet = find(
+                    const allWallets = await db.models.wallet.findWallets();
+                    const allWalletsJson = map(walletModel => walletModel.toJSON(), allWallets);
+                    const walletFound = anyMatch(
                       wallet =>
                         getAddress(wallet.address) === getAddress(sender) ||
                         getAddress(wallet.address) === getAddress(recipient),
                       allWalletsJson
                     );
-                    const valueInTokenUnits = parseFloat(amount);
 
-                    const tokenNameHash = abiInterface.getSighash('name()');
+                    if (walletFound) {
+                      const matchingWallet = find(
+                        wallet =>
+                          getAddress(wallet.address) === getAddress(sender) ||
+                          getAddress(wallet.address) === getAddress(recipient),
+                        allWalletsJson
+                      );
+                      const valueInTokenUnits = parseFloat(amount);
 
-                    await sleep(120);
-                    let tokenName = await rpcCall(chain.rpcUrl, {
-                      method: 'eth_call',
-                      params: [{ to, data: tokenNameHash }, 'latest']
-                    });
-                    [tokenName] = abiInterface.decodeFunctionResult('name()', tokenName);
+                      const tokenNameHash = abiInterface.getSighash('name()');
 
-                    const symbolHash = abiInterface.getSighash('symbol()');
+                      await sleep(120);
+                      let tokenName = await rpcCall(chain.rpcUrl, {
+                        method: 'eth_call',
+                        params: [{ to, data: tokenNameHash }, 'latest']
+                      });
+                      [tokenName] = abiInterface.decodeFunctionResult('name()', tokenName);
 
-                    await sleep(120);
-                    let symbol = await rpcCall(chain.rpcUrl, {
-                      method: 'eth_call',
-                      params: [{ to, data: symbolHash }, 'latest']
-                    });
+                      const symbolHash = abiInterface.getSighash('symbol()');
 
-                    symbol = symbol.startsWith('0x') ? Buffer.from(symbol, 'hex').toString() : symbol;
+                      await sleep(120);
+                      let symbol = await rpcCall(chain.rpcUrl, {
+                        method: 'eth_call',
+                        params: [{ to, data: symbolHash }, 'latest']
+                      });
 
-                    const tx = await db.models.transaction.addTransaction({
-                      from: sender,
-                      to: recipient,
-                      amount: valueInTokenUnits,
-                      timeStamp: multiply(parseInt(blockResult.timestamp), 1000),
-                      chainIdHex: hexValue(chainId),
-                      isERC20LikeSpec: true,
-                      tokenName,
-                      txId: hash,
-                      explorerUrl: chain.txExplorerUrl.replace(':hash', hash),
-                      walletId: matchingWallet.id,
-                      tokenAddress: to
-                    });
+                      symbol = symbol.startsWith('0x') ? Buffer.from(symbol, 'hex').toString() : symbol;
 
-                    log('New transaction stored: %s', JSON.stringify(tx, undefined, 2));
+                      const tx = await db.models.transaction.addTransaction({
+                        from: sender,
+                        to: recipient,
+                        amount: valueInTokenUnits,
+                        timeStamp: multiply(parseInt(blockResult.timestamp), 1000),
+                        chainIdHex: hexValue(chainId),
+                        isERC20LikeSpec: true,
+                        tokenName,
+                        txId: hash,
+                        explorerUrl: chain.txExplorerUrl.replace(':hash', hash),
+                        walletId: matchingWallet.id,
+                        tokenAddress: to
+                      });
 
-                    if (getAddress(recipient) === getAddress(matchingWallet.address)) {
-                      // Find push subscription
-                      const allSubscriptions = await db.models.subscription.getSubscriptions();
-                      const allSubscriptionsJson = map(sub => sub.toJSON(), allSubscriptions);
-                      const exactSub = allSubscriptionsJson.find(sub => sub.walletId === matchingWallet.id);
+                      log('New transaction stored: %s', JSON.stringify(tx, undefined, 2));
 
-                      if (typeof exactSub !== 'undefined') {
-                        const pushResult = await push.send(exactSub.deviceId, {
-                          title: 'New Deposit',
-                          body: `${valueInTokenUnits} ${symbol} deposited in your wallet.`,
-                          topic: IOS_BUNDLE_ID
-                        });
-                        log('Push notification sent with result: %s', JSON.stringify(pushResult, undefined, 2));
+                      if (getAddress(recipient) === getAddress(matchingWallet.address)) {
+                        // Find push subscription
+                        const allSubscriptions = await db.models.subscription.getSubscriptions();
+                        const allSubscriptionsJson = map(sub => sub.toJSON(), allSubscriptions);
+                        const exactSub = allSubscriptionsJson.find(sub => sub.walletId === matchingWallet.id);
+
+                        if (typeof exactSub !== 'undefined') {
+                          const pushResult = await push.send(exactSub.deviceId, {
+                            title: 'New Deposit',
+                            body: `${valueInTokenUnits} ${symbol} deposited in your wallet.`,
+                            topic: IOS_BUNDLE_ID
+                          });
+                          log('Push notification sent with result: %s', JSON.stringify(pushResult, undefined, 2));
+                        }
                       }
                     }
                   }
