@@ -39,7 +39,7 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
         params: [blockNumberAsHex, true]
       });
 
-      forEach(async transaction => {
+      forEach(transaction => {
         const { from, to, value, hash } = transaction;
 
         log('Now reading transaction: ', hash);
