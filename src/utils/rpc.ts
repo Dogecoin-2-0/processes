@@ -1,4 +1,5 @@
 import axios from 'axios';
+import log from '../log';
 
 interface JsonRpcRequestBody {
   method: string;
@@ -7,12 +8,15 @@ interface JsonRpcRequestBody {
 
 const rpcCall = (url: string, rpcSpec: JsonRpcRequestBody): Promise<any> => {
   return new Promise((resolve, reject) => {
-    axios.post(url, { ...rpcSpec, jsonrpc: '2.0', id: Math.floor(Math.random() * 4) + 1 }).then(response => {
-      const { data } = response;
+    axios
+      .post(url, { ...rpcSpec, jsonrpc: '2.0', id: Math.floor(Math.random() * 4) + 1 })
+      .then(response => {
+        const { data } = response;
 
-      if (!!data.result) resolve(data.result);
-      else if (!!data.error) reject(new Error(data.error.message));
-    });
+        if (!!data.result) resolve(data.result);
+        else if (!!data.error) reject(new Error(data.error.message));
+      })
+      .catch(reject);
   });
 };
 
