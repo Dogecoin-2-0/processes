@@ -18,7 +18,7 @@
   {
     "id": 43114,
     "name": "Avalanche C-Chain",
-    "rpcUrl": "https://avalancheapi.terminet.io/ext/bc/C/rpc",
+    "rpcUrl": "https://rpc.ankr.com/avalanche",
     "symbol": "AVAX",
     "txExplorerUrl": "https://snowtrace.io/tx/:hash",
     "alternateRpcUrl": "https://intensive-palpable-morning.avalanche-mainnet.quiknode.pro/763d9c35a497ce949aa3fb6e6ea208b1d48b2fc8"
