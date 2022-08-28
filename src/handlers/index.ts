@@ -1,9 +1,9 @@
 import { Interface } from '@ethersproject/abi';
-import { getAddress, isAddress } from '@ethersproject/address';
+import { getAddress } from '@ethersproject/address';
 import { hexValue } from '@ethersproject/bytes';
 import { formatEther, formatUnits } from '@ethersproject/units';
 import { AddressZero } from '@ethersproject/constants';
-import { find, forEach, map, any as anyMatch, multiply } from 'ramda';
+import { find, forEach, map, any as anyMatch, multiply, toLower } from 'ramda';
 import redis from '../helpers/redis';
 import rpcCall from '../utils/rpc';
 import chainlist from '../chainlist.json';
@@ -15,12 +15,9 @@ import log from '../log';
 import { redisLastProcessedBlockKey } from '../constants';
 import { IOS_BUNDLE_ID } from '../env';
 import push from '../objects/push';
+import { sleepBeforeRpcCall } from '../utils/misc';
 
 const timelockAbiInterface = new Interface(timelockAbi);
-
-function sleep(s: number) {
-  return new Promise(resolve => setTimeout(resolve, s * 1000));
-}
 
 export function propagateBlockData(blockNumber: number, chainId: number) {
   return async () => {
@@ -33,161 +30,61 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
 
       log('Now reading block %s on chain %s', blockNumberAsHex, hexValue(chainId));
 
-      await sleep(120);
-      const blockResult: { transactions: Array<TransactionSchema>; timestamp: string } = await rpcCall(chain.rpcUrl, {
-        method: 'eth_getBlockByNumber',
-        params: [blockNumberAsHex, true]
-      });
+      const blockResult: { transactions: Array<TransactionSchema>; timestamp: string } = await sleepBeforeRpcCall(
+        10,
+        chain.rpcUrl,
+        'eth_getBlockByNumber',
+        [blockNumberAsHex, true]
+      );
 
       forEach(transaction => {
-        const { from, to, value, hash } = transaction;
-
+        const { from, to, hash } = transaction;
         log('Now reading transaction: ', hash);
-
         (async () => {
-          const abiInterface = new Interface(erc20Abi);
-          const data = abiInterface.getSighash('decimals()');
           try {
-            await sleep(120);
-            const callValue = await rpcCall(chain.rpcUrl, {
-              method: 'eth_call',
-              params: [{ to, data }, 'latest']
-            });
+            const redisResponse1 = await redis.setObjectVal(
+              toLower(from),
+              hash,
+              { ...transaction, chainId: hexValue(chainId) },
+              60 * 60 * 24 * 30
+            );
+            const redisResponse2 = await redis.setObjectVal(
+              toLower(to),
+              hash,
+              { ...transaction, chainId: hexValue(chainId) },
+              60 * 60 * 24 * 30
+            );
+            log('Redis response: ', redisResponse1);
+            log('Redis response: ', redisResponse2);
 
-            if (callValue === '0x' || callValue === '0x0') {
-              const allWallets = await db.models.wallet.findWallets();
-              const allWalletsJson = map(walletModel => walletModel.toJSON(), allWallets);
-              const walletExists = anyMatch(
+            const allWallets = await db.models.wallet.findWallets();
+            const allWalletsJson = map(walletModel => walletModel.toJSON(), allWallets);
+            const walletExists = anyMatch(
+              wallet =>
+                getAddress(wallet.address) === getAddress(from) || getAddress(wallet.address) === getAddress(to),
+              allWalletsJson
+            );
+
+            if (walletExists) {
+              const matchingWallet = find(
                 wallet =>
                   getAddress(wallet.address) === getAddress(from) || getAddress(wallet.address) === getAddress(to),
                 allWalletsJson
               );
 
-              if (walletExists) {
-                const matchingWallet = find(
-                  wallet =>
-                    getAddress(wallet.address) === getAddress(from) || getAddress(wallet.address) === getAddress(to),
-                  allWalletsJson
-                );
-                const valueInEther = parseFloat(formatEther(value));
-                const tx = await db.models.transaction.addTransaction({
-                  from,
-                  to,
-                  amount: valueInEther,
-                  timeStamp: multiply(parseInt(blockResult.timestamp), 1000),
-                  chainIdHex: hexValue(chainId),
-                  isERC20LikeSpec: false,
-                  tokenName: chain.name,
-                  txId: hash,
-                  explorerUrl: chain.txExplorerUrl.replace(':hash', hash),
-                  walletId: matchingWallet.id,
-                  tokenAddress: AddressZero
-                });
-                // Log stored transaction information
-                log('New transaction stored: %s', JSON.stringify(tx, undefined, 2));
+              if (getAddress(to) === getAddress(matchingWallet.address)) {
+                // Find push subscription
+                const allSubscriptions = await db.models.subscription.getSubscriptions();
+                const allSubscriptionsJson = map(sub => sub.toJSON(), allSubscriptions);
+                const exactSub = allSubscriptionsJson.find(sub => sub.walletId === matchingWallet.id);
 
-                if (getAddress(to) === getAddress(matchingWallet.address)) {
-                  // Find push subscription
-                  const allSubscriptions = await db.models.subscription.getSubscriptions();
-                  const allSubscriptionsJson = map(sub => sub.toJSON(), allSubscriptions);
-                  const exactSub = allSubscriptionsJson.find(sub => sub.walletId === matchingWallet.id);
-
-                  if (typeof exactSub !== 'undefined') {
-                    const pushResult = await push.send(exactSub.deviceId, {
-                      title: 'New Deposit',
-                      body: `${valueInEther} ${chain.symbol} deposited in your wallet.`,
-                      topic: IOS_BUNDLE_ID
-                    });
-                    log('Push notification sent with result: %s', JSON.stringify(pushResult, undefined, 2));
-                  }
-                }
-              }
-            } else {
-              log('Now calling eth_getLogs');
-
-              await sleep(120);
-              const logs = await rpcCall(chain.rpcUrl, {
-                method: 'eth_getLogs',
-                params: [{ fromBlock: blockNumberAsHex, toBlock: blockNumberAsHex, address: to }]
-              });
-
-              for (const l of logs) {
-                const { args, name } = abiInterface.parseLog(l);
-
-                if (name === 'Transfer') {
-                  const sender = args[0];
-                  const recipient = args[1];
-                  const amount = formatUnits(args[2], callValue);
-
-                  const allWallets = await db.models.wallet.findWallets();
-                  const allWalletsJson = map(walletModel => walletModel.toJSON(), allWallets);
-                  const walletExists = anyMatch(
-                    wallet =>
-                      getAddress(wallet.address) === getAddress(sender) ||
-                      getAddress(wallet.address) === getAddress(recipient),
-                    allWalletsJson
-                  );
-
-                  if (walletExists) {
-                    const matchingWallet = find(
-                      wallet =>
-                        getAddress(wallet.address) === getAddress(sender) ||
-                        getAddress(wallet.address) === getAddress(recipient),
-                      allWalletsJson
-                    );
-                    const valueInTokenUnits = parseFloat(amount);
-
-                    const tokenNameHash = abiInterface.getSighash('name()');
-
-                    await sleep(120);
-                    let tokenName = await rpcCall(chain.rpcUrl, {
-                      method: 'eth_call',
-                      params: [{ to, data: tokenNameHash }, 'latest']
-                    });
-                    [tokenName] = abiInterface.decodeFunctionResult('name()', tokenName);
-
-                    const symbolHash = abiInterface.getSighash('symbol()');
-
-                    await sleep(120);
-                    let symbol = await rpcCall(chain.rpcUrl, {
-                      method: 'eth_call',
-                      params: [{ to, data: symbolHash }, 'latest']
-                    });
-
-                    symbol = symbol.startsWith('0x') ? Buffer.from(symbol, 'hex').toString() : symbol;
-
-                    const tx = await db.models.transaction.addTransaction({
-                      from: sender,
-                      to: recipient,
-                      amount: valueInTokenUnits,
-                      timeStamp: multiply(parseInt(blockResult.timestamp), 1000),
-                      chainIdHex: hexValue(chainId),
-                      isERC20LikeSpec: true,
-                      tokenName,
-                      txId: hash,
-                      explorerUrl: chain.txExplorerUrl.replace(':hash', hash),
-                      walletId: matchingWallet.id,
-                      tokenAddress: to
-                    });
-
-                    log('New transaction stored: %s', JSON.stringify(tx, undefined, 2));
-
-                    if (getAddress(recipient) === getAddress(matchingWallet.address)) {
-                      // Find push subscription
-                      const allSubscriptions = await db.models.subscription.getSubscriptions();
-                      const allSubscriptionsJson = map(sub => sub.toJSON(), allSubscriptions);
-                      const exactSub = allSubscriptionsJson.find(sub => sub.walletId === matchingWallet.id);
-
-                      if (typeof exactSub !== 'undefined') {
-                        const pushResult = await push.send(exactSub.deviceId, {
-                          title: 'New Deposit',
-                          body: `${valueInTokenUnits} ${symbol} deposited in your wallet.`,
-                          topic: IOS_BUNDLE_ID
-                        });
-                        log('Push notification sent with result: %s', JSON.stringify(pushResult, undefined, 2));
-                      }
-                    }
-                  }
+                if (typeof exactSub !== 'undefined') {
+                  const pushResult = await push.send(exactSub.deviceId, {
+                    title: 'New Transaction',
+                    body: `Asset has been deposited in your wallet`,
+                    topic: IOS_BUNDLE_ID
+                  });
+                  log('Push notification sent with result: %s', JSON.stringify(pushResult, undefined, 2));
                 }
               }
             }
@@ -226,16 +123,11 @@ export function syncFromLastProcessedBlock(chainId: number) {
 
         if (!chain) throw new Error('invalid chain');
 
-        await sleep(120);
-        let currentBlock = await rpcCall(chain.rpcUrl, {
-          method: 'eth_blockNumber',
-          params: []
-        });
+        let currentBlock = await sleepBeforeRpcCall(30, chain.rpcUrl, 'eth_blockNumber', []);
         currentBlock = parseInt(currentBlock);
 
         for (let i = lastProcessedBlock; i <= currentBlock; i++) {
           log('Now syncing block: %d', hexValue(i));
-          await sleep(120);
           propagateBlockData(i, chainId)();
         }
       }
@@ -261,7 +153,7 @@ export function propagateLockedTxCreated(chainId: number) {
       } else {
         const abiInterface = new Interface(erc20Abi);
         const data = abiInterface.getSighash('decimals()');
-        const callValue = await rpcCall(chain.rpcUrl, {
+        const callValue = await rpcCall(chain.alternateRpcUrl, {
           method: 'eth_call',
           params: [{ to: token, data }, 'latest']
         });
