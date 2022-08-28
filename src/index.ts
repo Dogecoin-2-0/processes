@@ -1,7 +1,7 @@
 import express from 'express';
 import { getAddress } from '@ethersproject/address';
 import { id as hashId } from '@ethersproject/hash';
-import { forEach, find, map, pick, filter } from 'ramda';
+import { forEach, find, map, pick, filter, toLower } from 'ramda';
 import * as db from './db';
 import CustomError from './custom/error';
 import _redis from './helpers/redis';
@@ -17,6 +17,8 @@ import {
 import log from './log';
 import { redisPriceKey, timelockTxContract } from './constants';
 import { fetchTokenPrices, watchPriceChangeHourly } from './cron';
+import redis from './helpers/redis';
+import { mapRedisResponsesToIdealTxs } from './utils/misc';
 
 const app: express.Express = express();
 const router = express.Router();
@@ -32,15 +34,16 @@ const timelockCancelledEvent = hashId('TimelockCancelled(bytes32)');
 function watchEvents() {
   forEach(chain => {
     const provider = buildProvider(chain.rpcUrl, chain.id);
+    const alternateProvider = buildProvider(chain.alternateRpcUrl, chain.id);
     syncFromLastProcessedBlock(chain.id);
 
     provider.on('block', (blockNumber: number) => propagateBlockData(blockNumber, chain.id)());
 
     if (!!timelockTxContract[chain.id]) {
       const address = timelockTxContract[chain.id];
-      provider.on({ address, topics: [timelockObjectCreatedEvent] }, propagateLockedTxCreated(chain.id));
-      provider.on({ address, topics: [timelockProcessedEvent] }, propagateTimelockProcessedEvent(chain.id));
-      provider.on({ address, topics: [timelockCancelledEvent] }, propagateTimelockCancelledEvent(chain.id));
+      alternateProvider.on({ address, topics: [timelockObjectCreatedEvent] }, propagateLockedTxCreated(chain.id));
+      alternateProvider.on({ address, topics: [timelockProcessedEvent] }, propagateTimelockProcessedEvent(chain.id));
+      alternateProvider.on({ address, topics: [timelockCancelledEvent] }, propagateTimelockCancelledEvent(chain.id));
     }
   }, chainlist);
 }
@@ -78,7 +81,7 @@ router.get('/wallet/:id', async (req, res) => {
     const allWalletsJson = map(wallet => wallet.toJSON(), allWallets);
     const result = allWalletsJson.find(wallet => wallet.id === parseInt(params.id));
 
-    if (typeof result === 'undefined') throw new CustomError(404, 'Wallet not found');
+    if (typeof result === 'undefined' || result === null) throw new CustomError(404, 'Wallet not found');
 
     return res.status(200).json({ result });
   } catch (err: any) {
@@ -89,12 +92,25 @@ router.get('/wallet/:id', async (req, res) => {
 router.get('/transactions/:id', async (req, res) => {
   try {
     const { params } = pick(['params'], req);
-    const allTx = await db.models.transaction.getAllTransactions();
-    const allTxJson = map(tx => tx.toJSON(), allTx);
-    const result = filter(tx => tx.walletId === parseInt(params.id), allTxJson);
+    const allWallets = await db.models.wallet.findWallets();
+    const allWalletsJson = map(wallet => wallet.toJSON(), allWallets);
+    const wallet = find(wallet => wallet.id === parseInt(params.id), allWalletsJson);
+
+    if (typeof wallet === 'undefined' || wallet === null) throw new CustomError(404, 'Wallet not found');
+
+    let result: any = await redis.getVal(toLower(wallet.address));
+    let transactions: any[] = [];
+
+    Object.keys(result).forEach(key => {
+      const obj = JSON.parse(result[key]);
+      transactions = [...transactions, obj];
+    });
+
+    result = transactions;
+    result = await mapRedisResponsesToIdealTxs(result);
     return res.status(200).json({ result });
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return res.status(err.errorCode || 500).json({ error: err.message });
   }
 });
 

@@ -13,11 +13,6 @@ export const sequelize = new Sequelize(DB_URI as string, {
 });
 
 export const models = buildModels(sequelize);
-
-models.wallet.hasMany(models.transaction.getModel(), {
-  sourceKey: 'id',
-  foreignKey: 'walletId'
-});
 models.wallet.hasOne(models.subscription.getModel(), {
   sourceKey: 'id',
   foreignKey: 'walletId'
