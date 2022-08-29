@@ -42,21 +42,6 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
         log('Now reading transaction: ', hash);
         (async () => {
           try {
-            const redisResponse1 = await redis.setObjectVal(
-              toLower(from),
-              hash,
-              { ...transaction, chainId: hexValue(chainId) },
-              60 * 60 * 24 * 30
-            );
-            const redisResponse2 = await redis.setObjectVal(
-              toLower(to),
-              hash,
-              { ...transaction, chainId: hexValue(chainId) },
-              60 * 60 * 24 * 30
-            );
-            log('Redis response: ', redisResponse1);
-            log('Redis response: ', redisResponse2);
-
             const allWallets = await db.models.wallet.findWallets();
             const allWalletsJson = map(walletModel => walletModel.toJSON(), allWallets);
             const walletExists = anyMatch(
@@ -71,6 +56,14 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
                   getAddress(wallet.address) === getAddress(from) || getAddress(wallet.address) === getAddress(to),
                 allWalletsJson
               );
+
+              const redisResponse = await redis.setObjectVal(
+                toLower(matchingWallet.address),
+                hash,
+                { ...transaction, chainId: hexValue(chainId) },
+                60 * 60 * 24 * 30
+              );
+              log('Redis response: ', redisResponse);
 
               if (getAddress(to) === getAddress(matchingWallet.address)) {
                 // Find push subscription
