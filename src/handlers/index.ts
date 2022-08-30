@@ -31,7 +31,7 @@ export function propagateBlockData(blockNumber: number, chainId: number) {
       log('Now reading block %s on chain %s', blockNumberAsHex, hexValue(chainId));
 
       const blockResult: { transactions: Array<TransactionSchema>; timestamp: string } = await sleepBeforeRpcCall(
-        120,
+        20,
         chain.rpcUrl,
         'eth_getBlockByNumber',
         [blockNumberAsHex, true]

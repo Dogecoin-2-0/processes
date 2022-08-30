@@ -24,8 +24,8 @@ export async function mapRedisResponsesToIdealTxs(redisResponses: Array<Transact
       const derivedIdealTx: { [key: string]: any } = {};
       const chain = chainlist.find(c => c.id === parseInt(tx.chainId));
       const url = chain?.rpcUrl as string;
-      const block = await sleepBeforeRpcCall(3, url, 'eth_getBlockByNumber', [tx.blockNumber, false]);
-      const addressCode = await sleepBeforeRpcCall(3, url, 'eth_getCode', [tx.to, 'latest']);
+      const block = await sleepBeforeRpcCall(0.5, url, 'eth_getBlockByNumber', [tx.blockNumber, false]);
+      const addressCode = await sleepBeforeRpcCall(0.5, url, 'eth_getCode', [tx.to, 'latest']);
 
       if (addressCode === '0x' || addressCode === '0x0') {
         // Not a contract
@@ -42,10 +42,10 @@ export async function mapRedisResponsesToIdealTxs(redisResponses: Array<Transact
       } else {
         const abiInterface = new Interface(erc20Abi);
         const data = abiInterface.getSighash('decimals()');
-        const callValue = await sleepBeforeRpcCall(3, url, 'eth_call', [{ to: tx.to, data }, 'latest']);
+        const callValue = await sleepBeforeRpcCall(0.5, url, 'eth_call', [{ to: tx.to, data }, 'latest']);
 
         if (callValue !== '0x0' && callValue !== '0x') {
-          const logs = await sleepBeforeRpcCall(3, url, 'eth_getLogs', [
+          const logs = await sleepBeforeRpcCall(0.5, url, 'eth_getLogs', [
             { fromBlock: tx.blockNumber, toBlock: tx.blockNumber, address: tx.to }
           ]);
 
